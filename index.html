@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f0d8">
+  <meta name="description" content="One-Line Physics Draw — a doodle notebook puzzle game with 100 physics levels.">
+  <title>One-Line Physics Draw</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Short+Stack&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <style>
+    :root {
+      --paper: #f7f0d8;
+      --paper-light: #fffdf5;
+      --grid: #e6ddbf;
+      --ink: #273244;
+      --muted: #677084;
+      --blue-ink: #3159c7;
+      --blue-soft: #e8edff;
+      --red: #e85d5d;
+      --green: #45b77b;
+      --green-dark: #137046;
+      --yellow: #f5c84c;
+      --orange: #ef9147;
+      --border: 2px solid var(--ink);
+      --shadow: 4px 4px 0 var(--ink);
+      --shadow-large: 7px 7px 0 var(--ink);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body {
+      overflow: hidden;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 22px 22px;
+      font-family: "Short Stack", "Patrick Hand", cursive, sans-serif;
+      overscroll-behavior: none;
+    }
+    button, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, select:focus-visible, canvas:focus-visible {
+      outline: 3px solid #6688ff;
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      width: min(100%, 760px);
+      height: 100dvh;
+      min-height: 500px;
+      margin: 0 auto;
+      padding: max(8px, env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      min-height: 43px;
+      z-index: 5;
+    }
+    .brand-lockup { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .brand-logo {
+      width: 39px;
+      height: 39px;
+      flex: 0 0 39px;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      border: var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 10px 9px 12px 8px;
+      color: var(--blue-ink);
+      transform: rotate(-3deg);
+      font-size: 19px;
+    }
+    .brand-copy { min-width: 0; line-height: 1.05; }
+    .brand-title {
+      margin: 0;
+      font-size: clamp(15px, 3.2vw, 22px);
+      letter-spacing: -0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand-subtitle {
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+    .top-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+
+    .doodle-btn {
+      border: var(--border);
+      border-radius: 9px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      min-height: 35px;
+      padding: 6px 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      transition: transform .08s ease, box-shadow .08s ease, filter .15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .doodle-btn:hover { filter: brightness(.98); }
+    .doodle-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+    .doodle-btn:disabled {
+      cursor: not-allowed;
+      opacity: .5;
+      transform: none;
+      box-shadow: var(--shadow);
+    }
+    .icon-btn { width: 36px; padding: 5px; }
+    .compact-btn { min-width: 36px; padding: 5px 7px; }
+    .blue-btn { background: var(--blue-soft); color: #243e9d; }
+    .green-btn { background: #baf0ce; color: #135d3c; }
+    .yellow-btn { background: #fff0bd; color: #6e4b00; }
+    .rose-btn { background: #fff0ee; color: #ae3d39; }
+    .select-btn { appearance: none; cursor: pointer; background: #fff; }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 2px;
+      z-index: 3;
+    }
+    .level-pill {
+      flex: 0 0 auto;
+      border: 1.5px solid var(--ink);
+      background: #fff;
+      border-radius: 999px;
+      box-shadow: 2px 2px 0 var(--ink);
+      padding: 4px 9px;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .ink-meter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+    .ink-meter > i { font-size: 12px; color: var(--muted); }
+    .meter-track {
+      height: 11px;
+      flex: 1;
+      overflow: hidden;
+      border: 1.5px solid var(--ink);
+      border-radius: 999px;
+      background: #d7dbe0;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.12);
+    }
+    .meter-fill {
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(135deg, #4a67d7 0 8px, #3853c2 8px 16px);
+      transition: width .15s ease, background .2s ease;
+    }
+    .meter-fill.low { background: repeating-linear-gradient(135deg, #ed8c49 0 8px, #df6d3c 8px 16px); }
+    .meter-label { width: 36px; text-align: right; font-size: 10px; font-weight: 700; color: var(--muted); }
+
+    .play-stage {
+      min-height: 0;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .canvas-card {
+      position: relative;
+      height: 100%;
+      width: min(100%, 520px);
+      max-height: 690px;
+      aspect-ratio: 400 / 650;
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: 16px 14px 18px 13px;
+      background: var(--paper-light);
+      box-shadow: 8px 8px 0 rgba(39,50,68,.92);
+      isolation: isolate;
+    }
+    .canvas-card::before {
+      content: "";
+      position: absolute;
+      left: 33px;
+      top: 0;
+      bottom: 0;
+      border-left: 2px solid rgba(226, 77, 77, .48);
+      z-index: 1;
+      pointer-events: none;
+    }
+    #game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    .canvas-topline {
+      position: absolute;
+      top: 10px;
+      left: 47px;
+      right: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .level-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 62%;
+      padding: 4px 8px;
+      border: 1px solid #9ca4b3;
+      border-radius: 999px;
+      background: rgba(255,255,255,.86);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .world-tag {
+      padding: 4px 7px;
+      color: #7a5500;
+      border: 1px solid #c79d36;
+      border-radius: 999px;
+      background: rgba(255,244,194,.9);
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .draw-prompt {
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      top: 48px;
+      transform: translateX(-50%);
+      max-width: calc(100% - 92px);
+      padding: 6px 10px;
+      border: 1.5px solid var(--ink);
+      border-radius: 999px;
+      background: rgba(255,255,255,.92);
+      box-shadow: 2px 2px 0 rgba(39,50,68,.32);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 10px;
+      font-weight: 700;
+      animation: gentle-pulse 2.4s infinite;
+      pointer-events: none;
+    }
+    .draw-prompt.hidden { display: none; }
+    .canvas-stamp {
+      position: absolute;
+      bottom: 8px;
+      left: 45px;
+      color: rgba(73,81,99,.55);
+      font-size: 9px;
+      pointer-events: none;
+    }
+
+    .bottom-bar { z-index: 5; display: flex; flex-direction: column; gap: 6px; }
+    .control-row { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 7px; }
+    .control-row .doodle-btn { min-height: 40px; font-size: 11px; }
+    .play-btn { background: #65d497; color: #123b2a; font-size: 14px !important; }
+    .ad-banner {
+      min-height: 39px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1.5px solid #a5aebb;
+      border-radius: 9px;
+      background: rgba(232,235,239,.85);
+      color: #616b7d;
+      font: 10px/1.2 Arial, sans-serif;
+    }
+    .ad-banner::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .2;
+      background-image: repeating-linear-gradient(135deg, transparent 0 12px, #fff 12px 14px);
+      pointer-events: none;
+    }
+    .ad-label { position: absolute; top: 3px; right: 4px; padding: 1px 4px; border-radius: 3px; background: #d4d9e0; font-size: 8px; }
+    .ad-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 6px; }
+    .ad-content i { color: #425fc1; font-size: 15px; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(25,32,46,.67);
+      backdrop-filter: blur(4px);
+    }
+    .modal.hidden { display: none; }
+    .panel {
+      width: min(100%, 430px);
+      max-height: min(88dvh, 680px);
+      overflow: auto;
+      border: 3px solid var(--ink);
+      border-radius: 15px 13px 17px 12px;
+      background: #fffef8;
+      box-shadow: var(--shadow-large);
+      padding: 16px;
+    }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 9px; margin-bottom: 11px; border-bottom: 1px dashed #abb2bf; }
+    .panel-title { margin: 0; font-size: 18px; }
+    .close-btn { border: 0; background: transparent; cursor: pointer; padding: 0 4px; color: var(--muted); font-size: 24px; line-height: 1; }
+    .close-btn:hover { color: var(--ink); }
+
+    .levels-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; max-height: 61dvh; overflow: auto; padding: 3px 3px 6px; }
+    .level-tile {
+      position: relative;
+      min-height: 49px;
+      padding: 5px 2px 3px;
+      border: 1.5px solid var(--ink);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 2px 2px 0 var(--ink);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .level-tile:hover:not(:disabled) { background: #f2f5ff; }
+    .level-tile:active:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+    .level-tile.current { background: #dce5ff; color: #2d49a1; }
+    .level-tile.complete { background: #fff3bb; }
+    .level-tile:disabled { opacity: .5; cursor: not-allowed; box-shadow: 2px 2px 0 #687283; }
+    .tile-stars { display: block; color: #edae1b; font-size: 7px; letter-spacing: -1px; min-height: 9px; }
+    .tile-lock { display: block; color: #7d8796; font-size: 10px; margin-top: -1px; min-height: 9px; }
+    .level-caption { margin: 2px 0 10px; color: var(--muted); font-size: 10px; text-align: center; }
+
+    .shop-list { display: grid; gap: 9px; }
+    .shop-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 9px;
+      padding: 10px;
+      border: 2px solid #c7cdd6;
+      border-radius: 11px;
+      background: #fff;
+    }
+    .shop-item h3 { margin: 0 0 3px; font-size: 12px; }
+    .shop-item p { margin: 0; color: var(--muted); font: 9px Arial, sans-serif; }
+    .price-btn { min-width: 59px; padding-inline: 7px; font-size: 11px; }
+    .shop-footnote { margin: 12px 0 0; color: #8b94a4; text-align: center; font: italic 9px Arial, sans-serif; }
+    .owned-mark { display: none; color: var(--green-dark); font-size: 10px; font-weight: 700; }
+    .owned .owned-mark { display: inline; }
+    .owned .price-btn { display: none; }
+
+    .result-panel { width: min(100%, 355px); text-align: center; padding: 20px; }
+    .result-icon { color: var(--yellow); font-size: 43px; filter: drop-shadow(2px 2px 0 var(--ink)); }
+    .result-panel.failed .result-icon { color: #e86d64; }
+    .result-title { margin: 5px 0 2px; font-size: 23px; }
+    .result-message { margin: 0; color: var(--muted); font-size: 11px; }
+    .stars { display: flex; justify-content: center; gap: 6px; margin: 7px 0; color: var(--yellow); font-size: 25px; }
+    .stars .dim { color: #ccd0d8; }
+    .result-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .result-actions .doodle-btn { flex: 1; min-height: 41px; }
+
+    .ad-panel {
+      width: min(100%, 315px);
+      text-align: center;
+      padding: 22px 20px 18px;
+      border-color: #455fd0;
+      box-shadow: 7px 7px 0 #253a98;
+    }
+    .ad-spinner {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 10px;
+      display: grid;
+      place-items: center;
+      border: 3px dashed #536ad3;
+      border-radius: 50%;
+      color: #536ad3;
+      font-size: 18px;
+      animation: spin 2.1s linear infinite;
+    }
+    .ad-kind { display: inline-block; padding: 3px 7px; border-radius: 5px; background: #e5eaff; color: #30469b; font: 700 9px Arial, sans-serif; text-transform: uppercase; }
+    .ad-title { margin: 7px 0 2px; font-size: 14px; }
+    .ad-description { margin: 0 0 12px; color: var(--muted); font: 10px Arial, sans-serif; }
+    .ad-progress { height: 9px; margin-bottom: 11px; overflow: hidden; border: 1px solid #8d98c5; border-radius: 999px; background: #e0e4f5; }
+    .ad-progress > div { width: 0; height: 100%; background: #526bd5; transition: width .1s linear; }
+    .ad-close { width: 100%; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(87px, calc(env(safe-area-inset-bottom) + 78px));
+      z-index: 100;
+      max-width: calc(100% - 32px);
+      padding: 8px 12px;
+      border: 2px solid var(--ink);
+      border-radius: 9px;
+      background: #fff;
+      box-shadow: 3px 3px 0 var(--ink);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      opacity: 0;
+      transform: translate(-50%, 10px);
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @keyframes gentle-pulse { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 520px) {
+      .app-shell { padding-inline: 8px; gap: 5px; }
+      .brand-logo { width: 34px; height: 34px; flex-basis: 34px; font-size: 16px; }
+      .brand-title { font-size: 15px; }
+      .brand-subtitle { font-size: 7px; }
+      .top-actions { gap: 3px; }
+      .top-actions .doodle-btn { min-height: 32px; }
+      .top-actions .hint-label, .top-actions .shop-label { display: none; }
+      .doodle-btn { padding-inline: 7px; }
+      .canvas-card { border-radius: 12px; box-shadow: 5px 5px 0 rgba(39,50,68,.92); }
+      .control-row { gap: 5px; }
+      .control-row .doodle-btn { padding-inline: 5px; }
+      .draw-prompt { top: 43px; font-size: 9px; }
+    }
+    @media (max-height: 650px) {
+      .app-shell { min-height: 420px; gap: 3px; padding-top: 4px; padding-bottom: 4px; }
+      .topbar { min-height: 35px; }
+      .brand-logo { width: 30px; height: 30px; flex-basis: 30px; }
+      .brand-subtitle { display: none; }
+      .status-row { min-height: 22px; }
+      .canvas-topline { top: 6px; }
+      .draw-prompt { top: 35px; }
+      .control-row .doodle-btn { min-height: 34px; }
+      .ad-banner { min-height: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-logo" aria-hidden="true"><i class="fa-solid fa-pen-nib"></i></div>
+        <div class="brand-copy">
+          <h1 class="brand-title" data-i18n="appTitle">One-Line Physics Draw</h1>
+          <div class="brand-subtitle" data-i18n="subtitle">Doodle notebook puzzles</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="btn-home" class="doodle-btn icon-btn" type="button" data-i18n-title="home" aria-label="Home"><i class="fa-solid fa-house"></i></button>
+        <button id="btn-levels" class="doodle-btn compact-btn" type="button" aria-label="Select level"><i class="fa-solid fa-list-check"></i><span id="level-indicator">1 / 100</span></button>
+        <button id="btn-sound" class="doodle-btn icon-btn" type="button" data-i18n-title="soundOn" aria-label="Sound"><i id="sound-icon" class="fa-solid fa-volume-high"></i></button>
+        <select id="lang-select" class="doodle-btn select-btn" aria-label="Language">
+          <option value="en">EN</option>
+          <option value="vi">VI</option>
+          <option value="zh">中文</option>
+          <option value="es">ES</option>
+          <option value="ru">RU</option>
+        </select>
+        <button id="btn-hint" class="doodle-btn compact-btn yellow-btn" type="button" data-i18n-title="hintTitle" aria-label="Hints"><i class="fa-solid fa-lightbulb"></i><span id="hint-count">5</span></button>
+        <button id="btn-shop" class="doodle-btn compact-btn green-btn" type="button" data-i18n-title="shop" aria-label="Shop"><i class="fa-solid fa-store"></i><span class="shop-label" data-i18n="shopShort">Shop</span></button>
+      </div>
+    </header>
+
+    <div class="status-row">
+      <div id="level-pill" class="level-pill">LEVEL 1</div>
+      <div class="ink-meter" aria-label="Ink remaining">
+        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
+        <div class="meter-track"><div id="ink-fill" class="meter-fill"></div></div>
+        <div id="ink-label" class="meter-label">100%</div>
+      </div>
+    </div>
+
+    <main class="play-stage">
+      <div id="canvas-card" class="canvas-card">
+        <canvas id="game-canvas" tabindex="0" aria-label="Physics drawing board"></canvas>
+        <div class="canvas-topline">
+          <div id="level-name" class="level-name">Warm-up</div>
+          <div id="world-tag" class="world-tag">Notebook 1</div>
+        </div>
+        <div id="draw-prompt" class="draw-prompt"><span id="prompt-text" data-i18n="drawPrompt">Draw one line to guide the ball into the cup</span></div>
+        <div class="canvas-stamp">✎ physics lab / <span id="stamp-level">001</span></div>
+      </div>
+    </main>
+
+    <footer class="bottom-bar">
+      <div class="control-row">
+        <button id="btn-clear" class="doodle-btn rose-btn" type="button"><i class="fa-solid fa-eraser"></i><span data-i18n="clear">Clear</span></button>
+        <button id="btn-play" class="doodle-btn play-btn" type="button"><i id="play-icon" class="fa-solid fa-play"></i><span id="play-label" data-i18n="play">PLAY</span></button>
+        <button id="btn-skip" class="doodle-btn blue-btn" type="button"><i class="fa-solid fa-forward"></i><span data-i18n="skip">Skip</span><i class="fa-solid fa-circle-play ad-mini" aria-hidden="true"></i></button>
+      </div>
+      <div id="hms-banner-container" class="ad-banner" role="status">
+        <span class="ad-label" data-i18n="adLabel">HMS AD</span>
+        <div class="ad-content"><i class="fa-solid fa-rectangle-ad"></i><span id="banner-text">Banner slot · testw6ac28233s</span></div>
+      </div>
+    </footer>
+  </div>
+
+  <div id="modal-levels" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="levels-title">
+    <div class="panel">
+      <div class="panel-header"><h2 id="levels-title" class="panel-title" data-i18n="selectLevel">Select level</h2><button class="close-btn" type="button" data-close="modal-levels" aria-label="Close">&times;</button></div>
+      <p id="levels-caption" class="level-caption">1 / 100 unlocked</p>
+      <div id="levels-grid" class="levels-grid"></div>
+    </div>
+  </div>
+
+  <div id="modal-shop" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+    <div class="panel">
+      <div class="panel-header"><h2 id="shop-title" class="panel-title"><i class="fa-solid fa-store"></i> <span data-i18n="shopTitle">Shop & upgrades</span></h2><button class="close-btn" type="button" data-close="modal-shop" aria-label="Close">&times;</button></div>
+      <div class="shop-list">
+        <div id="shop-noads" class="shop-item">
+          <div><h3 data-i18n="noAds">Remove banner & interstitial ads</h3><p>SKU: remove_ads_sku_01</p></div>
+          <span class="owned-mark" data-i18n="owned">Owned</span><button id="iap-noads" class="doodle-btn price-btn green-btn" type="button">$0.99</button>
+        </div>
+        <div class="shop-item">
+          <div><h3 data-i18n="hintPack">+10 hint pack</h3><p>SKU: hints_pack_sku_02</p></div>
+          <button id="iap-hints" class="doodle-btn price-btn yellow-btn" type="button">$0.49</button>
+        </div>
+        <div class="shop-item">
+          <div><h3 data-i18n="unlockAll">Unlock all 100 levels</h3><p>SKU: unlock_all_sku_03</p></div>
+          <button id="iap-vip" class="doodle-btn price-btn blue-btn" type="button">$1.99</button>
+        </div>
+      </div>
+      <p class="shop-footnote" data-i18n="poweredBy">Powered by Huawei In-App Purchases (HMS Core IAP Kit)</p>
+    </div>
+  </div>
+
+  <div id="modal-result" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div id="result-panel" class="panel result-panel">
+      <div id="result-icon" class="result-icon"><i class="fa-solid fa-trophy"></i></div>
+      <h2 id="result-title" class="result-title">Level cleared!</h2>
+      <div id="result-stars" class="stars" aria-label="Stars"></div>
+      <p id="result-message" class="result-message">Great physics precision!</p>
+      <div class="result-actions">
+        <button id="btn-result-replay" class="doodle-btn" type="button"><i class="fa-solid fa-rotate-right"></i><span data-i18n="replay">Replay</span></button>
+        <button id="btn-result-next" class="doodle-btn green-btn" type="button"><span id="result-next-label" data-i18n="nextLevel">Next level</span> <i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-ad-sim" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ad-title">
+    <div class="panel ad-panel">
+      <div class="ad-spinner"><i class="fa-solid fa-play"></i></div>
+      <span id="ad-kind" class="ad-kind">HMS rewarded ad</span>
+      <h2 id="ad-title" class="ad-title" data-i18n="simulatingAd">Simulating HMS video ad</h2>
+      <p id="ad-description" class="ad-description">Unit ID: <code>testx9dtjw2sp5</code></p>
+      <div class="ad-progress"><div id="ad-progress-fill"></div></div>
+      <button id="btn-close-ad" class="doodle-btn blue-btn ad-close" type="button" disabled><span data-i18n="adLoading">Loading…</span></button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const BASE_W = 400;
+      const BASE_H = 650;
+      const BALL_RADIUS = 13;
+      const AD_UNITS = {
+        banner: 'testw6ac28233s',
+        interstitial: 'testb421t2f329',
+        rewarded: 'testx9dtjw2sp5'
+      };
+      const IAP_SKUS = {
+        noAds: 'remove_ads_sku_01',
+        hints: 'hints_pack_sku_02',
+        vip: 'unlock_all_sku_03'
+      };
+      const WORLD_NAMES = ['Notebook 1', 'Blue Margin', 'Doodle Lab', 'Tilted Pages', 'Final Exam'];
+
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+      const rand = (seed) => {
+        const x = Math.sin(seed * 999.91) * 43758.5453;
+        return x - Math.floor(x);
+      };
+      const deepCopy = (value) => JSON.parse(JSON.stringify(value));
+
+      const I18N = {
+        en: {
+          appTitle: 'One-Line Physics Draw', subtitle: 'Doodle notebook puzzles', home: 'Home', soundOn: 'Sound on', soundOff: 'Sound off',
+          hintTitle: 'Use a hint', shop: 'Open shop', shopShort: 'Shop', drawPrompt: 'Draw one line to guide the ball into the cup',
+          clear: 'Clear', play: 'PLAY', playing: 'RUNNING', reset: 'RESET', skip: 'Skip', adLabel: 'HMS AD',
+          selectLevel: 'Select level', levelsUnlocked: '{unlocked} / 100 unlocked', shopTitle: 'Shop & upgrades', noAds: 'Remove banner & interstitial ads',
+          hintPack: '+10 hint pack', unlockAll: 'Unlock all 100 levels', owned: 'Owned', poweredBy: 'Powered by Huawei In-App Purchases (HMS Core IAP Kit)',
+          nextLevel: 'Next level', replay: 'Replay', tryAgain: 'Try again', levelCleared: 'Level cleared!', levelFailed: 'Not quite!',
+          greatPhysics: 'Great physics precision!', ballMissed: 'The ball missed the cup. Try a different angle.', levelComplete: 'You finished every page!',
+          level: 'LEVEL', ink: 'INK', adLoading: 'Loading…', finishAd: 'Finish ad', simulatingAd: 'Simulating HMS video ad',
+          rewardedAd: 'HMS rewarded ad', interstitialAd: 'HMS interstitial ad', hintShown: 'Hint sketched in green!', noHints: 'No hints left — watch an ad for 3 more.',
+          rewarded: '+3 hints added!', lineTooShort: 'Draw a little longer line first.', lineReady: 'Line ready — press PLAY!', drawingLimit: 'Ink limit reached.',
+          homeToast: 'Back to level 1', locked: 'Locked', skipConfirm: 'Watch a short ad to skip this level?', purchaseMock: 'Browser demo purchase complete!',
+          noAdsBought: 'Ads removed for this device.', hintsBought: '10 hints added!', vipBought: 'All 100 levels unlocked!', bannerMock: 'Banner slot · testw6ac28233s',
+          levelName: 'Level {n}', notebook: 'Notebook {n}', adUnit: 'Unit ID', shopUnavailable: 'Purchase unavailable in this browser.',
+          levelOne: 'Warm-up', levelTwo: 'The Little Ramp', levelThree: 'Pocket Bridge', levelFour: 'Almost There', levelFive: 'Crosswind',
+          levelSix: 'A Gentle Drop', levelSeven: 'Mind the Gap', levelEight: 'Two Steps', levelNine: 'Lucky Loop', levelTen: 'The Long Way'
+        },
+        vi: {
+          appTitle: 'Vẽ Vật Lý Một Nét', subtitle: 'Câu đố vở kẻ ô', home: 'Trang chủ', soundOn: 'Bật âm thanh', soundOff: 'Tắt âm thanh',
+          hintTitle: 'Dùng gợi ý', shop: 'Mở cửa hàng', shopShort: 'Shop', drawPrompt: 'Vẽ một nét đưa bóng vào chiếc cốc', clear: 'Xóa', play: 'CHƠI', playing: 'ĐANG CHẠY', reset: 'CHƠI LẠI', skip: 'Bỏ qua', adLabel: 'QUẢNG CÁO HMS',
+          selectLevel: 'Chọn màn', levelsUnlocked: 'Đã mở {unlocked} / 100', shopTitle: 'Cửa hàng & nâng cấp', noAds: 'Xóa quảng cáo banner & xen kẽ', hintPack: '+10 gợi ý', unlockAll: 'Mở khóa cả 100 màn', owned: 'Đã mua', poweredBy: 'Hỗ trợ bởi Huawei IAP (HMS Core)',
+          nextLevel: 'Màn tiếp', replay: 'Chơi lại', tryAgain: 'Thử lại', levelCleared: 'Qua màn!', levelFailed: 'Chưa được!', greatPhysics: 'Điều khiển vật lý tuyệt vời!', ballMissed: 'Bóng chưa vào cốc. Hãy thử góc khác.', levelComplete: 'Bạn đã hoàn thành mọi trang!',
+          level: 'MÀN', ink: 'MỰC', adLoading: 'Đang tải…', finishAd: 'Xem xong', simulatingAd: 'Mô phỏng quảng cáo video HMS', rewardedAd: 'Quảng cáo nhận thưởng HMS', interstitialAd: 'Quảng cáo xen kẽ HMS', hintShown: 'Đã phác gợi ý màu xanh!', noHints: 'Hết gợi ý — xem quảng cáo để nhận thêm 3.', rewarded: 'Đã thêm 3 gợi ý!', lineTooShort: 'Hãy vẽ một đường dài hơn.', lineReady: 'Đường đã sẵn sàng — nhấn CHƠI!', drawingLimit: 'Đã hết mực.', homeToast: 'Về màn 1', locked: 'Đã khóa', skipConfirm: 'Xem quảng cáo ngắn để bỏ qua màn này?', purchaseMock: 'Mua thử nghiệm trên trình duyệt thành công!', noAdsBought: 'Đã tắt quảng cáo trên thiết bị này.', hintsBought: 'Đã thêm 10 gợi ý!', vipBought: 'Đã mở khóa 100 màn!', bannerMock: 'Ô quảng cáo · testw6ac28233s', levelName: 'Màn {n}', notebook: 'Vở {n}', adUnit: 'Mã quảng cáo', shopUnavailable: 'Mua hàng không khả dụng trên trình duyệt.',
+          levelOne: 'Khởi động', levelTwo: 'Dốc nhỏ', levelThree: 'Cầu túi', levelFour: 'Gần tới', levelFive: 'Gió ngang', levelSix: 'Rơi nhẹ', levelSeven: 'Cẩn thận khoảng trống', levelEight: 'Hai bậc', levelNine: 'Vòng may mắn', levelTen: 'Đường dài'
+        },
+        zh: {
+          appTitle: '一笔物理画', subtitle: '涂鸦笔记本谜题', home: '主页', soundOn: '开启声音', soundOff: '关闭声音', hintTitle: '使用提示', shop: '打开商店', shopShort: '商店', drawPrompt: '画一条线，把小球引进杯子', clear: '清除', play: '开始', playing: '运行中', reset: '重试', skip: '跳过', adLabel: 'HMS 广告', selectLevel: '选择关卡', levelsUnlocked: '已解锁 {unlocked} / 100', shopTitle: '商店与升级', noAds: '移除横幅和插屏广告', hintPack: '+10 个提示', unlockAll: '解锁全部 100 关', owned: '已拥有', poweredBy: '由华为应用内支付（HMS Core）提供', nextLevel: '下一关', replay: '重玩', tryAgain: '再试一次', levelCleared: '关卡完成！', levelFailed: '还差一点！', greatPhysics: '物理控制非常棒！', ballMissed: '小球没有进杯子，换个角度试试。', levelComplete: '你完成了所有页面！', level: '关卡', ink: '墨水', adLoading: '加载中…', finishAd: '完成广告', simulatingAd: '正在模拟 HMS 视频广告', rewardedAd: 'HMS 激励广告', interstitialAd: 'HMS 插屏广告', hintShown: '绿色线条显示了提示！', noHints: '没有提示了——看广告获得 3 个。', rewarded: '已获得 3 个提示！', lineTooShort: '先画一条长一点的线。', lineReady: '线已准备好——点击开始！', drawingLimit: '墨水用完了。', homeToast: '返回第 1 关', locked: '未解锁', skipConfirm: '观看短广告来跳过这一关？', purchaseMock: '浏览器演示购买成功！', noAdsBought: '已为此设备移除广告。', hintsBought: '已获得 10 个提示！', vipBought: '已解锁全部 100 关！', bannerMock: '横幅广告位 · testw6ac28233s', levelName: '第 {n} 关', notebook: '笔记本 {n}', adUnit: '广告单元', shopUnavailable: '浏览器中无法购买。', levelOne: '热身', levelTwo: '小斜坡', levelThree: '口袋桥', levelFour: '就快到了', levelFive: '侧风', levelSix: '轻轻下落', levelSeven: '注意缺口', levelEight: '两级台阶', levelNine: '幸运环', levelTen: '漫长旅途'
+        },
+        es: {
+          appTitle: 'Dibujo Físico de Una Línea', subtitle: 'Puzles de cuaderno', home: 'Inicio', soundOn: 'Sonido activado', soundOff: 'Sonido desactivado', hintTitle: 'Usar pista', shop: 'Abrir tienda', shopShort: 'Tienda', drawPrompt: 'Dibuja una línea para llevar la bola a la taza', clear: 'Limpiar', play: 'JUGAR', playing: 'EN MARCHA', reset: 'REPETIR', skip: 'Saltar', adLabel: 'ANUNCIO HMS', selectLevel: 'Elegir nivel', levelsUnlocked: '{unlocked} / 100 desbloqueados', shopTitle: 'Tienda y mejoras', noAds: 'Quitar anuncios de banner e intersticiales', hintPack: '+10 pistas', unlockAll: 'Desbloquear los 100 niveles', owned: 'Comprado', poweredBy: 'Con tecnología de compras Huawei (HMS Core)', nextLevel: 'Siguiente nivel', replay: 'Repetir', tryAgain: 'Intentar de nuevo', levelCleared: '¡Nivel superado!', levelFailed: '¡Casi!', greatPhysics: '¡Gran precisión física!', ballMissed: 'La bola no llegó a la taza. Prueba otro ángulo.', levelComplete: '¡Has terminado todas las páginas!', level: 'NIVEL', ink: 'TINTA', adLoading: 'Cargando…', finishAd: 'Terminar anuncio', simulatingAd: 'Simulando vídeo de HMS', rewardedAd: 'Anuncio recompensado HMS', interstitialAd: 'Anuncio intersticial HMS', hintShown: '¡Pista dibujada en verde!', noHints: 'No quedan pistas; mira un anuncio para obtener 3.', rewarded: '¡Has recibido 3 pistas!', lineTooShort: 'Dibuja primero una línea un poco más larga.', lineReady: 'Línea lista: ¡pulsa JUGAR!', drawingLimit: 'Límite de tinta alcanzado.', homeToast: 'Volviendo al nivel 1', locked: 'Bloqueado', skipConfirm: '¿Ver un anuncio corto para saltar este nivel?', purchaseMock: '¡Compra de demostración completada!', noAdsBought: 'Anuncios eliminados en este dispositivo.', hintsBought: '¡10 pistas añadidas!', vipBought: '¡Los 100 niveles están desbloqueados!', bannerMock: 'Espacio de banner · testw6ac28233s', levelName: 'Nivel {n}', notebook: 'Cuaderno {n}', adUnit: 'ID de unidad', shopUnavailable: 'Las compras no están disponibles en este navegador.', levelOne: 'Calentamiento', levelTwo: 'La pequeña rampa', levelThree: 'Puente de bolsillo', levelFour: 'Casi', levelFive: 'Viento lateral', levelSix: 'Caída suave', levelSeven: 'Cuidado con el hueco', levelEight: 'Dos pasos', levelNine: 'Bucle de suerte', levelTen: 'El camino largo'
+        },
+        ru: {
+          appTitle: 'Физика в одну линию', subtitle: 'Головоломки в тетради', home: 'Домой', soundOn: 'Звук включён', soundOff: 'Звук выключен', hintTitle: 'Использовать подсказку', shop: 'Открыть магазин', shopShort: 'Магазин', drawPrompt: 'Нарисуйте линию и направьте шарик в чашку', clear: 'Очистить', play: 'ИГРАТЬ', playing: 'ЗАПУСК', reset: 'ЗАНОВО', skip: 'Пропустить', adLabel: 'РЕКЛАМА HMS', selectLevel: 'Выбор уровня', levelsUnlocked: 'Открыто: {unlocked} / 100', shopTitle: 'Магазин и улучшения', noAds: 'Убрать баннерную и полноэкранную рекламу', hintPack: '+10 подсказок', unlockAll: 'Открыть все 100 уровней', owned: 'Куплено', poweredBy: 'Покупки Huawei IAP (HMS Core)', nextLevel: 'Следующий уровень', replay: 'Заново', tryAgain: 'Ещё раз', levelCleared: 'Уровень пройден!', levelFailed: 'Почти получилось!', greatPhysics: 'Отличная точность!', ballMissed: 'Шарик не попал в чашку. Попробуйте другой угол.', levelComplete: 'Вы прошли все страницы!', level: 'УРОВЕНЬ', ink: 'ЧЕРНИЛА', adLoading: 'Загрузка…', finishAd: 'Завершить рекламу', simulatingAd: 'Имитация видео HMS', rewardedAd: 'Реклама с наградой HMS', interstitialAd: 'Полноэкранная реклама HMS', hintShown: 'Подсказка отмечена зелёным!', noHints: 'Подсказок нет — посмотрите рекламу и получите 3.', rewarded: 'Добавлено 3 подсказки!', lineTooShort: 'Сначала нарисуйте линию подлиннее.', lineReady: 'Линия готова — нажмите ИГРАТЬ!', drawingLimit: 'Чернила закончились.', homeToast: 'Возврат на уровень 1', locked: 'Закрыто', skipConfirm: 'Посмотреть короткую рекламу и пропустить уровень?', purchaseMock: 'Демонстрационная покупка завершена!', noAdsBought: 'Реклама отключена на этом устройстве.', hintsBought: 'Добавлено 10 подсказок!', vipBought: 'Все 100 уровней открыты!', bannerMock: 'Баннер · testw6ac28233s', levelName: 'Уровень {n}', notebook: 'Тетрадь {n}', adUnit: 'ID блока', shopUnavailable: 'Покупки недоступны в браузере.', levelOne: 'Разминка', levelTwo: 'Маленький скат', levelThree: 'Карманный мост', levelFour: 'Почти у цели', levelFive: 'Боковой ветер', levelSix: 'Мягкое падение', levelSeven: 'Осторожно, пробел', levelEight: 'Две ступени', levelNine: 'Удачная петля', levelTen: 'Долгий путь'
+        }
+      };
+
+      function t(key, vars = {}) {
+        const dictionary = I18N[state.lang] || I18N.en;
+        let text = dictionary[key] ?? I18N.en[key] ?? key;
+        Object.keys(vars).forEach((name) => { text = text.replaceAll(`{${name}}`, vars[name]); });
+        return text;
+      }
+
+      function safeLoad() {
+        const fallback = { level: 1, unlocked: 1, hints: 5, sound: true, lang: 'en', removeAds: false, completed: {}, hintsUsed: 0 };
+        try {
+          const saved = JSON.parse(localStorage.getItem('oneLinePhysicsDrawState') || 'null');
+          const merged = { ...fallback, ...(saved && typeof saved === 'object' ? saved : {}) };
+          merged.level = clamp(Number(merged.level) || 1, 1, 100);
+          merged.unlocked = clamp(Number(merged.unlocked) || 1, 1, 100);
+          merged.hints = Math.max(0, Number(merged.hints) || 0);
+          merged.hintsUsed = Math.max(0, Number(merged.hintsUsed) || 0);
+          merged.completed = merged.completed && typeof merged.completed === 'object' ? merged.completed : {};
+          merged.lang = I18N[merged.lang] ? merged.lang : 'en';
+          return merged;
+        } catch (error) { return fallback; }
+      }
+      function saveState() {
+        try { localStorage.setItem('oneLinePhysicsDrawState', JSON.stringify(state)); } catch (error) { /* private browsing */ }
+      }
+
+      const state = safeLoad();
+      let currentLevel;
+      let engine = null;
+      let ballBody = null;
+      let goalSensor = null;
+      let drawnBodies = [];
+      let pendingStroke = [];
+      let currentStroke = [];
+      let strokeLength = 0;
+      let hintVisible = false;
+      let phase = 'ready';
+      let lastFrame = 0;
+      let loopStarted = false;
+      let runStartedAt = 0;
+      let resultStars = 0;
+      let toastTimer = null;
+      let adTimer = null;
+      let adDone = false;
+      let pendingAdCallback = null;
+      let pendingPurchaseCallback = null;
+      let audioContext = null;
+      let particles = [];
+
+      // ---------------------------------------------------------------------
+      // Extensible level JSON. Every level uses the same simple data contract.
+      // Coordinates are in the 400 x 650 game space, independent of the screen.
+      // ---------------------------------------------------------------------
+      const LEVEL_TEMPLATES = [
+        { ball: { x: 68, y: 92 }, cup: { x: 322, y: 542 }, platforms: [{ x: 200, y: 612, w: 350, h: 18, angle: 0 }], hint: [{ x: 110, y: 210 }, { x: 215, y: 350 }, { x: 310, y: 490 }] },
+        { ball: { x: 80, y: 100 }, cup: { x: 318, y: 474 }, platforms: [{ x: 200, y: 594, w: 350, h: 18, angle: 0 }, { x: 177, y: 400, w: 130, h: 15, angle: -8 }], hint: [{ x: 117, y: 220 }, { x: 205, y: 320 }, { x: 295, y: 420 }] },
+        { ball: { x: 328, y: 90 }, cup: { x: 72, y: 520 }, platforms: [{ x: 200, y: 610, w: 350, h: 18, angle: 0 }, { x: 205, y: 330, w: 150, h: 15, angle: 12 }], hint: [{ x: 285, y: 194 }, { x: 195, y: 295 }, { x: 100, y: 445 }] },
+        { ball: { x: 76, y: 110 }, cup: { x: 313, y: 175 }, platforms: [{ x: 200, y: 614, w: 350, h: 18, angle: 0 }, { x: 150, y: 300, w: 120, h: 15, angle: 7 }, { x: 290, y: 220, w: 110, h: 15, angle: -10 }], hint: [{ x: 112, y: 220 }, { x: 220, y: 240 }, { x: 285, y: 170 }] },
+        { ball: { x: 68, y: 94 }, cup: { x: 319, y: 555 }, platforms: [{ x: 200, y: 614, w: 350, h: 18, angle: 0 }, { x: 210, y: 470, w: 190, h: 15, angle: -13 }, { x: 155, y: 300, w: 150, h: 15, angle: 9 }], hint: [{ x: 110, y: 190 }, { x: 170, y: 365 }, { x: 280, y: 515 }] },
+        { ball: { x: 332, y: 96 }, cup: { x: 81, y: 260 }, platforms: [{ x: 200, y: 614, w: 350, h: 18, angle: 0 }, { x: 290, y: 390, w: 130, h: 15, angle: 12 }, { x: 145, y: 185, w: 125, h: 15, angle: -8 }], hint: [{ x: 282, y: 175 }, { x: 245, y: 300 }, { x: 110, y: 240 }] },
+        { ball: { x: 90, y: 92 }, cup: { x: 315, y: 390 }, platforms: [{ x: 200, y: 614, w: 350, h: 18, angle: 0 }, { x: 125, y: 505, w: 95, h: 15, angle: -16 }, { x: 282, y: 300, w: 105, h: 15, angle: 13 }], hazards: [{ x: 201, y: 570, w: 48, h: 10 }], hint: [{ x: 125, y: 180 }, { x: 230, y: 270 }, { x: 302, y: 350 }] },
+        { ball: { x: 320, y: 85 }, cup: { x: 95, y: 523 }, platforms: [{ x: 200, y: 614, w: 350, h: 18, angle: 0 }, { x: 205, y: 510, w: 130, h: 14, angle: 0 }, { x: 105, y: 330, w: 110, h: 14, angle: -12 }], hint: [{ x: 278, y: 170 }, { x: 245, y: 430 }, { x: 125, y: 475 }] },
+        { ball: { x: 74, y: 85 }, cup: { x: 305, y: 300 }, platforms: [{ x: 200, y: 614, w: 350, h: 18, angle: 0 }, { x: 165, y: 520, w: 165, h: 15, angle: 7 }, { x: 270, y: 405, w: 80, h: 15, angle: -14 }, { x: 132, y: 260, w: 110, h: 15, angle: 8 }], hint: [{ x: 110, y: 180 }, { x: 208, y: 445 }, { x: 275, y: 330 }] },
+        { ball: { x: 322, y: 95 }, cup: { x: 78, y: 142 }, platforms: [{ x: 200, y: 614, w: 350, h: 18, angle: 0 }, { x: 205, y: 280, w: 220, h: 14, angle: -5 }, { x: 115, y: 225, w: 90, h: 14, angle: 14 }], hint: [{ x: 285, y: 170 }, { x: 190, y: 235 }, { x: 95, y: 132 }] }
+      ];
+
+      function levelTitle(id) {
+        const names = ['levelOne', 'levelTwo', 'levelThree', 'levelFour', 'levelFive', 'levelSix', 'levelSeven', 'levelEight', 'levelNine', 'levelTen'];
+        return t(names[(id - 1) % names.length]);
+      }
+
+      function makeLevel(id) {
+        if (id <= LEVEL_TEMPLATES.length) {
+          const source = deepCopy(LEVEL_TEMPLATES[id - 1]);
+          return { id, name: levelTitle(id), world: Math.floor((id - 1) / 20) + 1, budget: 250 + ((id * 17) % 75), hazards: [], ...source, hazards: source.hazards || [] };
+        }
+        const n = id;
+        const templateIndex = (n - 1) % LEVEL_TEMPLATES.length;
+        const base = deepCopy(LEVEL_TEMPLATES[templateIndex]);
+        const world = Math.floor((n - 1) / 20) + 1;
+        const wave = rand(n * 1.31);
+        const mirror = n % 2 === 0;
+        const ball = {
+          x: mirror ? 315 - Math.round(rand(n + 4) * 30) : 60 + Math.round(rand(n + 4) * 30),
+          y: 72 + Math.round(rand(n + 7) * 65)
+        };
+        const cup = {
+          x: mirror ? 70 + Math.round(rand(n + 12) * 70) : 260 + Math.round(rand(n + 12) * 70),
+          y: 135 + Math.round(rand(n + 18) * 425)
+        };
+        if (Math.abs(cup.x - ball.x) < 100) cup.x = mirror ? 320 : 80;
+        const shift = Math.round((wave - .5) * 70);
+        const platforms = [
+          { x: 200, y: 614, w: 350, h: 18, angle: 0 },
+          { x: clamp(185 + shift, 90, 310), y: 475 + Math.round(rand(n + 21) * 45), w: 105 + Math.round(rand(n + 22) * 110), h: 14, angle: Math.round((rand(n + 23) - .5) * 28) },
+          { x: clamp(190 - shift, 80, 320), y: 285 + Math.round(rand(n + 25) * 50), w: 82 + Math.round(rand(n + 26) * 110), h: 14, angle: Math.round((rand(n + 27) - .5) * 30) }
+        ];
+        if (n % 3 === 0) platforms.push({ x: clamp(205 + shift * .7, 80, 320), y: 175 + Math.round(rand(n + 29) * 45), w: 75 + Math.round(rand(n + 30) * 90), h: 13, angle: Math.round((rand(n + 31) - .5) * 34) });
+        const hazards = n % 4 === 0 ? [{ x: 190 + Math.round((rand(n + 32) - .5) * 70), y: 571, w: 42, h: 10 }] : [];
+        const hint = [
+          { x: clamp(ball.x + (mirror ? -35 : 35), 42, 358), y: clamp(ball.y + 110, 100, 570) },
+          { x: clamp((ball.x + cup.x) / 2 + shift * .25, 43, 357), y: clamp((ball.y + cup.y) / 2 - 30, 95, 570) },
+          { x: clamp(cup.x + (mirror ? 35 : -35), 42, 358), y: clamp(cup.y - 35, 75, 600) }
+        ];
+        return { id, name: levelTitle(id), world, budget: 230 + Math.round(rand(n + 35) * 125), ball, cup, platforms, hazards, hint };
+      }
+
+      const LEVELS = Array.from({ length: 100 }, (_, index) => makeLevel(index + 1));
+
+      // ---------------------------------------------------------------------
+      // HMS Core WebView bridge. Native apps can provide any of these bridge
+      // objects and call the callbacks below. The browser automatically falls
+      // back to the visual simulator, so the game is testable without HMS.
+      // ---------------------------------------------------------------------
+      const HMS_CONFIG = {
+        bannerAdUnitId: AD_UNITS.banner,
+        interstitialAdUnitId: AD_UNITS.interstitial,
+        rewardedAdUnitId: AD_UNITS.rewarded,
+        iapSkus: IAP_SKUS
+      };
+
+      function postToNative(message) {
+        const serialized = JSON.stringify({ source: 'one-line-physics-draw', ...message });
+        try {
+          if (window.HMSCoreWebViewBridge && typeof window.HMSCoreWebViewBridge.postMessage === 'function') {
+            window.HMSCoreWebViewBridge.postMessage(serialized); return true;
+          }
+          if (window.HMSCore && typeof window.HMSCore.postMessage === 'function') {
+            window.HMSCore.postMessage(serialized); return true;
+          }
+          if (window.HuaweiHMS && typeof window.HuaweiHMS.postMessage === 'function') {
+            window.HuaweiHMS.postMessage(serialized); return true;
+          }
+        } catch (error) { console.warn('HMS bridge error', error); }
+        return false;
+      }
+
+      function callNativeAd(type, callback) {
+        const unitId = AD_UNITS[type];
+        try {
+          if (window.HuaweiAds && typeof window.HuaweiAds[`show${type[0].toUpperCase()}${type.slice(1)}`] === 'function') {
+            window.HuaweiAds[`show${type[0].toUpperCase()}${type.slice(1)}`](unitId, callback); return true;
+          }
+          if (postToNative({ module: 'ads', action: `show_${type}`, adUnitId: unitId })) {
+            pendingAdCallback = callback; return true;
+          }
+        } catch (error) { console.warn('HMS Ads hook error', error); }
+        return false;
+      }
+
+      function callNativePurchase(sku, callback) {
+        try {
+          if (window.HuaweiIAP && typeof window.HuaweiIAP.purchase === 'function') {
+            window.HuaweiIAP.purchase(sku, callback); return true;
+          }
+          if (postToNative({ module: 'iap', action: 'purchase', productId: sku })) {
+            pendingPurchaseCallback = callback; return true;
+          }
+        } catch (error) { console.warn('HMS IAP hook error', error); }
+        return false;
+      }
+
+      // These names are intentionally global: native HMS WebViews can call them.
+      window.HMSGameConfig = HMS_CONFIG;
+      window.HMSGameCallbacks = {
+        onRewardedComplete: (success = true) => finishNativeAd('rewarded', success),
+        onInterstitialClosed: () => finishNativeAd('interstitial', true),
+        onPurchaseResult: (sku, success = true) => finishNativePurchase(sku, success)
+      };
+      window.onHMSRewardedComplete = window.HMSGameCallbacks.onRewardedComplete;
+      window.onHMSInterstitialClosed = window.HMSGameCallbacks.onInterstitialClosed;
+      window.onHMSPurchaseResult = window.HMSGameCallbacks.onPurchaseResult;
+
+      function setupBanner() {
+        const container = $('#hms-banner-container');
+        if (state.removeAds) { container.style.display = 'none'; return; }
+        const nativeBanner = postToNative({ module: 'ads', action: 'show_banner', adUnitId: AD_UNITS.banner, containerId: 'hms-banner-container' });
+        if (!nativeBanner) $('#banner-text').textContent = t('bannerMock');
+      }
+
+      function openMockAd(type, callback) {
+        pendingAdCallback = callback;
+        adDone = false;
+        const duration = type === 'rewarded' ? 2600 : 1800;
+        $('#ad-kind').textContent = type === 'rewarded' ? t('rewardedAd') : t('interstitialAd');
+        $('#ad-title').textContent = t('simulatingAd');
+        $('#ad-description').innerHTML = `${t('adUnit')}: <code>${AD_UNITS[type]}</code>`;
+        $('#btn-close-ad').disabled = true;
+        $('#btn-close-ad').querySelector('span').textContent = t('adLoading');
+        $('#ad-progress-fill').style.width = '0%';
+        $('#modal-ad-sim').classList.remove('hidden');
+        let elapsed = 0;
+        clearInterval(adTimer);
+        adTimer = setInterval(() => {
+          elapsed += 100;
+          const percent = clamp(elapsed / duration * 100, 0, 100);
+          $('#ad-progress-fill').style.width = `${percent}%`;
+          if (percent >= 100) {
+            clearInterval(adTimer); adDone = true;
+            $('#btn-close-ad').disabled = false;
+            $('#btn-close-ad').querySelector('span').textContent = t('finishAd');
+          }
+        }, 100);
+      }
+
+      function finishNativeAd(type, success) {
+        if (typeof pendingAdCallback === 'function') {
+          const callback = pendingAdCallback; pendingAdCallback = null; callback(Boolean(success), type);
+        }
+        $('#modal-ad-sim').classList.add('hidden');
+      }
+
+      function showAd(type, callback) {
+        if (type !== 'rewarded' && state.removeAds) { callback(true, type); return; }
+        if (!callNativeAd(type, callback)) openMockAd(type, callback);
+      }
+
+      function finishNativePurchase(sku, success) {
+        if (typeof pendingPurchaseCallback === 'function') {
+          const callback = pendingPurchaseCallback; pendingPurchaseCallback = null; callback(Boolean(success), sku);
+        }
+      }
+
+      function grantPurchase(sku) {
+        if (sku === IAP_SKUS.noAds) { state.removeAds = true; setupBanner(); showToast(t('noAdsBought')); }
+        if (sku === IAP_SKUS.hints) { state.hints += 10; showToast(t('hintsBought')); }
+        if (sku === IAP_SKUS.vip) { state.unlocked = 100; showToast(t('vipBought')); }
+        saveState(); updateUI(); renderLevels();
+      }
+
+      function purchase(sku) {
+        const completed = (success = true) => { if (success) grantPurchase(sku); };
+        if (!callNativePurchase(sku, completed)) {
+          // A deterministic browser mock stands in for an AppGallery purchase.
+          window.setTimeout(() => { grantPurchase(sku); showToast(t('purchaseMock')); }, 550);
+        }
+      }
+
+      // ---------------------------------------------------------------------
+      // Matter.js world and drawing interaction.
+      // ---------------------------------------------------------------------
+      function createBodyForPlatform(item, label = 'platform') {
+        return Matter.Bodies.rectangle(item.x, item.y, item.w, item.h, {
+          isStatic: true,
+          angle: (item.angle || 0) * Math.PI / 180,
+          label,
+          friction: .88,
+          restitution: .12
+        });
+      }
+
+      function setupPhysics() {
+        if (!window.Matter) {
+          showToast('Matter.js could not be loaded. Check the network connection.');
+          return;
+        }
+        engine = Matter.Engine.create({ enableSleeping: true });
+        engine.gravity.y = 1;
+        drawnBodies = [];
+        const level = currentLevel;
+        const bodies = [];
+        bodies.push(
+          Matter.Bodies.rectangle(BASE_W / 2, BASE_H + 25, BASE_W + 80, 50, { isStatic: true, label: 'boundary' }),
+          Matter.Bodies.rectangle(-24, BASE_H / 2, 48, BASE_H + 120, { isStatic: true, label: 'boundary' }),
+          Matter.Bodies.rectangle(BASE_W + 24, BASE_H / 2, 48, BASE_H + 120, { isStatic: true, label: 'boundary' })
+        );
+        level.platforms.forEach((item) => bodies.push(createBodyForPlatform(item)));
+        level.hazards.forEach((item) => bodies.push(createBodyForPlatform(item, 'hazard')));
+
+        const cup = level.cup;
+        const cupBottom = Matter.Bodies.rectangle(cup.x, cup.y + cup.h - 4, cup.w, 8, { isStatic: true, label: 'goal-cup' });
+        const cupLeft = Matter.Bodies.rectangle(cup.x - cup.w / 2 + 4, cup.y + cup.h / 2 - 2, 8, cup.h, { isStatic: true, label: 'goal-cup' });
+        const cupRight = Matter.Bodies.rectangle(cup.x + cup.w / 2 - 4, cup.y + cup.h / 2 - 2, 8, cup.h, { isStatic: true, label: 'goal-cup' });
+        goalSensor = Matter.Bodies.rectangle(cup.x, cup.y + 16, cup.w - 8, cup.h - 11, { isStatic: true, isSensor: true, label: 'goal-sensor' });
+        bodies.push(cupBottom, cupLeft, cupRight, goalSensor);
+        ballBody = Matter.Bodies.circle(level.ball.x, level.ball.y, BALL_RADIUS, {
+          label: 'ball', restitution: .32, friction: .5, frictionAir: .004, density: .004
+        });
+        bodies.push(ballBody);
+        Matter.World.add(engine.world, bodies);
+        Matter.Events.on(engine, 'collisionStart', handleCollisions);
+      }
+
+      function handleCollisions(event) {
+        if (phase !== 'running') return;
+        event.pairs.forEach((pair) => {
+          const a = pair.bodyA;
+          const b = pair.bodyB;
+          const isBallGoal = (a === ballBody && b === goalSensor) || (b === ballBody && a === goalSensor);
+          if (isBallGoal) finishLevel(true);
+          const isBallHazard = (a === ballBody && b.label === 'hazard') || (b === ballBody && a.label === 'hazard');
+          if (isBallHazard) finishLevel(false, 'hazard');
+        });
+      }
+
+      function addStrokeToWorld() {
+        if (!pendingStroke.length || !engine) return;
+        drawnBodies = [];
+        for (let i = 1; i < pendingStroke.length; i += 1) {
+          const p1 = pendingStroke[i - 1];
+          const p2 = pendingStroke[i];
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const length = Math.hypot(dx, dy);
+          if (length < 2) continue;
+          const body = Matter.Bodies.rectangle((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, length + 3, 9, {
+            isStatic: true,
+            angle: Math.atan2(dy, dx),
+            label: 'drawn-line',
+            friction: .9,
+            restitution: .13,
+            chamfer: { radius: 3 }
+          });
+          drawnBodies.push(body);
+        }
+        if (drawnBodies.length) Matter.World.add(engine.world, drawnBodies);
+      }
+
+      function startSimulation() {
+        if (phase !== 'ready') return;
+        if (pendingStroke.length < 2 || strokeLength < 25) { showToast(t('lineTooShort')); return; }
+        addStrokeToWorld();
+        phase = 'running';
+        runStartedAt = performance.now();
+        $('#draw-prompt').classList.add('hidden');
+        $('#play-icon').className = 'fa-solid fa-stop';
+        $('#play-label').textContent = t('playing');
+        playTone(540, .08);
+      }
+
+      function resetLevel() {
+        phase = 'ready';
+        pendingStroke = [];
+        currentStroke = [];
+        strokeLength = 0;
+        hintVisible = false;
+        resultStars = 0;
+        particles = [];
+        $('#draw-prompt').classList.remove('hidden');
+        $('#play-icon').className = 'fa-solid fa-play';
+        $('#play-label').textContent = t('play');
+        $('#modal-result').classList.add('hidden');
+        setupPhysics();
+        updateUI();
+      }
+
+      function finishLevel(won, reason = 'miss') {
+        if (phase !== 'running') return;
+        phase = won ? 'won' : 'failed';
+        if (won) {
+          const remaining = 1 - strokeLength / currentLevel.budget;
+          resultStars = hintVisible ? Math.max(1, remaining > .55 ? 2 : 1) : (remaining > .64 ? 3 : remaining > .3 ? 2 : 1);
+          const previous = Number(state.completed[currentLevel.id] || 0);
+          state.completed[currentLevel.id] = Math.max(previous, resultStars);
+          state.unlocked = Math.max(state.unlocked, Math.min(100, currentLevel.id + 1));
+          state.hintsUsed += hintVisible ? 1 : 0;
+          saveState();
+          makeParticles(ballBody ? ballBody.position.x : currentLevel.cup.x, ballBody ? ballBody.position.y : currentLevel.cup.y, true);
+          playTone(720, .12); window.setTimeout(() => playTone(920, .12), 120);
+        } else {
+          makeParticles(ballBody ? ballBody.position.x : currentLevel.ball.x, ballBody ? ballBody.position.y : currentLevel.ball.y, false);
+          playTone(190, .16);
+        }
+        window.setTimeout(() => showResult(won, reason), won ? 420 : 300);
+      }
+
+      function showResult(won, reason) {
+        if (won) {
+          $('#result-panel').classList.remove('failed');
+          $('#result-icon').innerHTML = '<i class="fa-solid fa-trophy"></i>';
+          $('#result-title').textContent = t('levelCleared');
+          $('#result-message').textContent = currentLevel.id === 100 ? t('levelComplete') : t('greatPhysics');
+          $('#result-stars').innerHTML = [1, 2, 3].map((n) => `<i class="fa-solid fa-star ${n <= resultStars ? '' : 'dim'}"></i>`).join('');
+          $('#result-next-label').textContent = currentLevel.id === 100 ? t('replay') : t('nextLevel');
+        } else {
+          $('#result-panel').classList.add('failed');
+          $('#result-icon').innerHTML = '<i class="fa-solid fa-face-dizzy"></i>';
+          $('#result-title').textContent = t('levelFailed');
+          $('#result-message').textContent = reason === 'hazard' ? t('ballMissed') : t('ballMissed');
+          $('#result-stars').innerHTML = '<i class="fa-solid fa-star dim"></i><i class="fa-solid fa-star dim"></i><i class="fa-solid fa-star dim"></i>';
+          $('#result-next-label').textContent = t('tryAgain');
+        }
+        renderLevels();
+        $('#modal-result').classList.remove('hidden');
+      }
+
+      function loadLevel(id) {
+        const nextId = clamp(Number(id) || 1, 1, 100);
+        if (nextId > state.unlocked && !state.removeAds) { showToast(`${t('locked')} · ${t('levelsUnlocked', { unlocked: state.unlocked })}`); return; }
+        currentLevel = LEVELS[nextId - 1];
+        state.level = nextId;
+        saveState();
+        $('#modal-levels').classList.add('hidden');
+        resetLevel();
+      }
+
+      function nextLevel() {
+        $('#modal-result').classList.add('hidden');
+        if (currentLevel.id >= 100) { resetLevel(); return; }
+        loadLevel(currentLevel.id + 1);
+      }
+
+      // ---------------------------------------------------------------------
+      // Canvas rendering, responsive sizing, and pointer drawing.
+      // ---------------------------------------------------------------------
+      const canvas = $('#game-canvas');
+      const ctx = canvas.getContext('2d');
+      let dpr = 1;
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        ctx.setTransform(rect.width ? rect.width / BASE_W * dpr : dpr, 0, 0, rect.height ? rect.height / BASE_H * dpr : dpr, 0, 0);
+      }
+
+      function pointFromEvent(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: clamp((event.clientX - rect.left) / rect.width * BASE_W, 4, BASE_W - 4),
+          y: clamp((event.clientY - rect.top) / rect.height * BASE_H, 4, BASE_H - 4)
+        };
+      }
+
+      function addPoint(point) {
+        const last = currentStroke[currentStroke.length - 1];
+        if (!last) { currentStroke.push(point); return; }
+        const distance = Math.hypot(point.x - last.x, point.y - last.y);
+        if (distance < 4) return;
+        const available = currentLevel.budget - strokeLength;
+        if (distance > available) {
+          const ratio = available / distance;
+          const clipped = { x: last.x + (point.x - last.x) * ratio, y: last.y + (point.y - last.y) * ratio };
+          currentStroke.push(clipped); strokeLength = currentLevel.budget;
+          showToast(t('drawingLimit'));
+          finishStroke();
+          return;
+        }
+        currentStroke.push(point);
+        strokeLength += distance;
+      }
+
+      function finishStroke() {
+        if (!currentStroke.length) return;
+        if (currentStroke.length > 1) {
+          pendingStroke = currentStroke.slice();
+          showToast(t('lineReady'));
+          playTone(420, .04);
+        }
+        currentStroke = [];
+        canvas.releasePointerCapture?.(activePointerId);
+        updateUI();
+      }
+
+      let activePointerId = null;
+      canvas.addEventListener('pointerdown', (event) => {
+        if (phase !== 'ready' || pendingStroke.length) return;
+        event.preventDefault();
+        activePointerId = event.pointerId;
+        canvas.setPointerCapture?.(activePointerId);
+        currentStroke = [pointFromEvent(event)];
+        hintVisible = false;
+      }, { passive: false });
+      canvas.addEventListener('pointermove', (event) => {
+        if (phase !== 'ready' || !currentStroke.length || event.pointerId !== activePointerId) return;
+        event.preventDefault();
+        addPoint(pointFromEvent(event));
+      }, { passive: false });
+      canvas.addEventListener('pointerup', (event) => {
+        if (event.pointerId === activePointerId) finishStroke();
+        activePointerId = null;
+      });
+      canvas.addEventListener('pointercancel', () => { currentStroke = []; activePointerId = null; });
+
+      function roundRectPath(context, x, y, w, h, radius) {
+        const r = Math.min(radius, Math.abs(w) / 2, Math.abs(h) / 2);
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.arcTo(x + w, y, x + w, y + h, r);
+        context.arcTo(x + w, y + h, x, y + h, r);
+        context.arcTo(x, y + h, x, y, r);
+        context.arcTo(x, y, x + w, y, r);
+        context.closePath();
+      }
+
+      function drawRotatedBlock(item, fill, stroke, dash = []) {
+        ctx.save();
+        ctx.translate(item.x, item.y);
+        ctx.rotate((item.angle || 0) * Math.PI / 180);
+        ctx.setLineDash(dash);
+        roundRectPath(ctx, -item.w / 2, -item.h / 2, item.w, item.h, Math.min(5, item.h / 2));
+        ctx.fillStyle = fill; ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = stroke; ctx.stroke();
+        ctx.restore();
+        ctx.setLineDash([]);
+      }
+
+      function drawCup(cup) {
+        ctx.save();
+        ctx.translate(cup.x, cup.y);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#273244';
+        ctx.fillStyle = '#ffd96b';
+        ctx.beginPath();
+        ctx.moveTo(-cup.w / 2, 3);
+        ctx.lineTo(cup.w / 2, 3);
+        ctx.lineTo(cup.w / 2 - 6, cup.h - 5);
+        ctx.quadraticCurveTo(0, cup.h + 7, -cup.w / 2 + 6, cup.h - 5);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#f5b839';
+        ctx.beginPath(); ctx.ellipse(0, 4, cup.w / 2 - 1, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = '#dc962d'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(-11, 12); ctx.lineTo(-8, cup.h - 5); ctx.moveTo(0, 12); ctx.lineTo(0, cup.h); ctx.moveTo(11, 12); ctx.lineTo(8, cup.h - 5); ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawBall(position) {
+        if (!position) return;
+        ctx.save();
+        ctx.translate(position.x, position.y);
+        ctx.shadowColor = 'rgba(39,50,68,.27)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 2;
+        const gradient = ctx.createRadialGradient(-4, -5, 2, 2, 3, BALL_RADIUS + 4);
+        gradient.addColorStop(0, '#ff8791'); gradient.addColorStop(1, '#e84e67');
+        ctx.fillStyle = gradient; ctx.strokeStyle = '#273244'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, BALL_RADIUS, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = '#273244';
+        ctx.beginPath(); ctx.arc(-4, -1, 1.6, 0, Math.PI * 2); ctx.arc(4, -1, 1.6, 0, Math.PI * 2); ctx.fill();
+        ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 2, 5, .2, Math.PI - .2); ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawPath(points, color, width, dashed = false) {
+        if (!points || points.length < 2) return;
+        ctx.save();
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = width;
+        ctx.strokeStyle = color; ctx.setLineDash(dashed ? [8, 7] : []);
+        ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+        points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function renderScene() {
+        if (!currentLevel) return;
+        ctx.save();
+        ctx.clearRect(0, 0, BASE_W, BASE_H);
+        ctx.fillStyle = '#fffdf5'; ctx.fillRect(0, 0, BASE_W, BASE_H);
+        // Faint notebook rules.
+        ctx.strokeStyle = 'rgba(207,198,166,.43)'; ctx.lineWidth = 1;
+        for (let y = 28; y < BASE_H; y += 25) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(BASE_W, y); ctx.stroke(); }
+        // A tiny hand-drawn corner mark keeps the page from feeling sterile.
+        ctx.strokeStyle = 'rgba(39,50,68,.18)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(365, 35, 10, .1, 1.8); ctx.stroke();
+
+        currentLevel.platforms.forEach((item) => drawRotatedBlock(item, '#c8d1df', '#526074'));
+        currentLevel.hazards.forEach((item) => {
+          drawRotatedBlock(item, '#ffb2a5', '#c44d51');
+          ctx.save(); ctx.translate(item.x, item.y - 4); ctx.fillStyle = '#c44d51';
+          for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i * 12 - 7, 5); ctx.lineTo(i * 12, -5); ctx.lineTo(i * 12 + 7, 5); ctx.fill(); }
+          ctx.restore();
+        });
+        drawCup(currentLevel.cup);
+        if (hintVisible) drawPath(currentLevel.hint, '#43a879', 5, true);
+        if (pendingStroke.length > 1) {
+          drawPath(pendingStroke, '#253b9f', 10);
+          drawPath(pendingStroke, '#5276e2', 5);
+        }
+        if (currentStroke.length > 1) {
+          drawPath(currentStroke, '#253b9f', 11);
+          drawPath(currentStroke, '#5276e2', 6);
+        }
+        if (drawnBodies.length) {
+          drawnBodies.forEach((body) => {
+            const vertices = body.vertices;
+            ctx.save(); ctx.beginPath(); ctx.moveTo(vertices[0].x, vertices[0].y);
+            vertices.slice(1).forEach((vertex) => ctx.lineTo(vertex.x, vertex.y)); ctx.closePath();
+            ctx.fillStyle = '#3d58c1'; ctx.strokeStyle = '#202f81'; ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke(); ctx.restore();
+          });
+        }
+        if (phase === 'ready' && !pendingStroke.length && currentLevel.ball) {
+          ctx.save(); ctx.globalAlpha = .4; ctx.strokeStyle = '#e84e67'; ctx.setLineDash([3, 5]); ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(currentLevel.ball.x, currentLevel.ball.y, BALL_RADIUS + 7, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+        }
+        drawBall(ballBody ? ballBody.position : currentLevel.ball);
+        drawParticles();
+        ctx.restore();
+      }
+
+      function makeParticles(x, y, success) {
+        const colors = success ? ['#f5c84c', '#65d497', '#5276e2', '#e84e67'] : ['#e86d64', '#aeb7c5', '#677084'];
+        for (let i = 0; i < 22; i += 1) particles.push({ x, y, vx: (rand(i + x) - .5) * 5, vy: (rand(i + y) - .7) * 5, life: 1, color: colors[i % colors.length], size: 2 + rand(i + 11) * 3 });
+      }
+      function drawParticles() {
+        particles = particles.filter((particle) => particle.life > 0);
+        particles.forEach((particle) => {
+          particle.x += particle.vx; particle.y += particle.vy; particle.vy += .12; particle.life -= .018;
+          ctx.globalAlpha = Math.max(0, particle.life); ctx.fillStyle = particle.color;
+          ctx.beginPath(); ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      function frame(now) {
+        if (!loopStarted) return;
+        const delta = Math.min(34, lastFrame ? now - lastFrame : 16.7);
+        lastFrame = now;
+        if (phase === 'running' && engine) {
+          Matter.Engine.update(engine, delta);
+          if (ballBody && (ballBody.position.y > BASE_H + 90 || performance.now() - runStartedAt > 15000)) finishLevel(false);
+        }
+        renderScene();
+        requestAnimationFrame(frame);
+      }
+      function startLoop() { if (!loopStarted) { loopStarted = true; requestAnimationFrame(frame); } }
+
+      // ---------------------------------------------------------------------
+      // UI, i18n, hints, sound, modals, and persistence.
+      // ---------------------------------------------------------------------
+      function updateUI() {
+        if (!currentLevel) return;
+        $('#level-indicator').textContent = `${currentLevel.id} / 100`;
+        $('#level-pill').textContent = `${t('level')} ${currentLevel.id}`;
+        $('#level-name').textContent = currentLevel.name;
+        $('#world-tag').textContent = `${t('notebook', { n: currentLevel.world })}`;
+        $('#stamp-level').textContent = String(currentLevel.id).padStart(3, '0');
+        $('#hint-count').textContent = state.hints;
+        const percent = clamp(Math.round((1 - strokeLength / currentLevel.budget) * 100), 0, 100);
+        $('#ink-fill').style.width = `${percent}%`;
+        $('#ink-fill').classList.toggle('low', percent < 30);
+        $('#ink-label').textContent = `${percent}%`;
+        $('#sound-icon').className = state.sound ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+        $('#btn-sound').title = t(state.sound ? 'soundOn' : 'soundOff');
+        $('#btn-sound').setAttribute('aria-label', t(state.sound ? 'soundOn' : 'soundOff'));
+        $('#play-label').textContent = phase === 'running' ? t('playing') : (phase === 'ready' ? t('play') : t('reset'));
+        $('#play-icon').className = phase === 'running' ? 'fa-solid fa-stop' : (phase === 'ready' ? 'fa-solid fa-play' : 'fa-solid fa-rotate-right');
+        $('#draw-prompt').classList.toggle('hidden', phase !== 'ready');
+        $('#shop-noads').classList.toggle('owned', state.removeAds);
+        $('#hms-banner-container').style.display = state.removeAds ? 'none' : 'flex';
+      }
+
+      function applyTranslations() {
+        $$('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
+        $$('[data-i18n-title]').forEach((node) => { node.title = t(node.dataset.i18nTitle); });
+        $('#prompt-text').textContent = t('drawPrompt');
+        $('#banner-text').textContent = t('bannerMock');
+        $('#lang-select').value = state.lang;
+        document.documentElement.lang = state.lang === 'zh' ? 'zh-CN' : state.lang;
+        document.title = t('appTitle');
+        if (currentLevel) currentLevel.name = levelTitle(currentLevel.id);
+        updateUI();
+        renderLevels();
+      }
+
+      function renderLevels() {
+        const grid = $('#levels-grid');
+        if (!grid || !currentLevel) return;
+        $('#levels-caption').textContent = t('levelsUnlocked', { unlocked: state.removeAds ? 100 : state.unlocked });
+        grid.innerHTML = '';
+        LEVELS.forEach((level) => {
+          const unlocked = state.removeAds || level.id <= state.unlocked;
+          const stars = Number(state.completed[level.id] || 0);
+          const button = document.createElement('button');
+          button.type = 'button'; button.className = `level-tile ${level.id === currentLevel.id ? 'current' : ''} ${stars ? 'complete' : ''}`;
+          button.disabled = !unlocked;
+          button.setAttribute('aria-label', unlocked ? `${t('levelName', { n: level.id })}` : `${t('levelName', { n: level.id })}, ${t('locked')}`);
+          button.innerHTML = `<span>${level.id}</span><span class="tile-stars">${stars ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '&nbsp;'}</span><span class="tile-lock">${unlocked ? '' : '<i class="fa-solid fa-lock"></i>'}</span>`;
+          button.addEventListener('click', () => loadLevel(level.id));
+          grid.appendChild(button);
+        });
+      }
+
+      function showToast(message) {
+        const toast = $('#toast'); toast.textContent = message; toast.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+      }
+
+      function showHint() {
+        if (phase !== 'ready') { showToast(t('lineReady')); return; }
+        if (state.hints <= 0) {
+          showToast(t('noHints'));
+          showAd('rewarded', (success) => { if (success) { state.hints += 3; saveState(); updateUI(); showToast(t('rewarded')); } });
+          return;
+        }
+        state.hints -= 1; state.hintsUsed += 1; hintVisible = true; saveState(); updateUI(); showToast(t('hintShown')); playTone(660, .08);
+      }
+
+      function playTone(frequency, duration) {
+        if (!state.sound) return;
+        try {
+          audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator(); const gain = audioContext.createGain();
+          oscillator.type = 'triangle'; oscillator.frequency.value = frequency; gain.gain.setValueAtTime(.045, audioContext.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration);
+          oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(); oscillator.stop(audioContext.currentTime + duration);
+        } catch (error) { /* WebAudio is optional */ }
+      }
+
+      function openModal(id) { $(`#${id}`).classList.remove('hidden'); }
+      function closeModal(id) { $(`#${id}`).classList.add('hidden'); }
+
+      $('#btn-home').addEventListener('click', () => { loadLevel(1); showToast(t('homeToast')); });
+      $('#btn-levels').addEventListener('click', () => { renderLevels(); openModal('modal-levels'); });
+      $('#btn-shop').addEventListener('click', () => openModal('modal-shop'));
+      $('#btn-hint').addEventListener('click', showHint);
+      $('#btn-sound').addEventListener('click', () => { state.sound = !state.sound; saveState(); updateUI(); if (state.sound) playTone(600, .08); });
+      $('#lang-select').addEventListener('change', (event) => { state.lang = event.target.value; saveState(); applyTranslations(); });
+      $('#btn-clear').addEventListener('click', () => { playTone(260, .06); resetLevel(); });
+      $('#btn-play').addEventListener('click', () => { if (phase === 'ready') startSimulation(); else resetLevel(); });
+      $('#btn-skip').addEventListener('click', () => {
+        if (currentLevel.id >= 100) return;
+        showAd('interstitial', (success) => { if (success) loadLevel(currentLevel.id + 1); });
+      });
+      $('#btn-result-replay').addEventListener('click', resetLevel);
+      $('#btn-result-next').addEventListener('click', nextLevel);
+      $('#btn-close-ad').addEventListener('click', () => {
+        if (!adDone) return;
+        const callback = pendingAdCallback; pendingAdCallback = null;
+        clearInterval(adTimer); closeModal('modal-ad-sim');
+        if (callback) callback(true, $('#ad-kind').textContent.includes('rewarded') ? 'rewarded' : 'interstitial');
+      });
+      $('#iap-noads').addEventListener('click', () => purchase(IAP_SKUS.noAds));
+      $('#iap-hints').addEventListener('click', () => purchase(IAP_SKUS.hints));
+      $('#iap-vip').addEventListener('click', () => purchase(IAP_SKUS.vip));
+      $$('[data-close]').forEach((button) => button.addEventListener('click', () => closeModal(button.dataset.close)));
+      $$('.modal').forEach((modal) => modal.addEventListener('pointerdown', (event) => { if (event.target === modal && modal.id !== 'modal-ad-sim') closeModal(modal.id); }));
+      document.addEventListener('keydown', (event) => { if (event.key === 'Escape') $$('.modal:not(.hidden)').forEach((modal) => closeModal(modal.id)); });
+      window.addEventListener('resize', resizeCanvas);
+
+      currentLevel = LEVELS[state.level - 1];
+      setupPhysics();
+      resizeCanvas();
+      setupBanner();
+      applyTranslations();
+      startLoop();
+    })();
+  </script>
+</body>
+</html>
