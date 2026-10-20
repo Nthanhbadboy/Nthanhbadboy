@@ -1,0 +1,80 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.doodle.physics.draw"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.doodle.physics.draw"
+        minSdk 21
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+    }
+
+    flavorDimensions += "store"
+    productFlavors {
+        huawei {
+            dimension "store"
+            buildConfigField "String", "STORE_PROVIDER", '"huawei"'
+            buildConfigField "String", "BANNER_AD_UNIT", '"testw6ac28233s"'
+            buildConfigField "String", "INTERSTITIAL_AD_UNIT", '"testb421t2f329"'
+            buildConfigField "String", "REWARDED_AD_UNIT", '"testx9dtjw2sp5"'
+        }
+        amazon {
+            dimension "store"
+            buildConfigField "String", "STORE_PROVIDER", '"amazon"'
+            // Replace these with Amazon Ads/APS units before publishing to Amazon.
+            buildConfigField "String", "BANNER_AD_UNIT", '"amazon-test-banner"'
+            buildConfigField "String", "INTERSTITIAL_AD_UNIT", '"amazon-test-interstitial"'
+            buildConfigField "String", "REWARDED_AD_UNIT", '"amazon-test-rewarded"'
+        }
+        samsung {
+            dimension "store"
+            buildConfigField "String", "STORE_PROVIDER", '"samsung"'
+            // Google-provided Android test units for the Samsung/AdMob flavor.
+            buildConfigField "String", "BANNER_AD_UNIT", '"ca-app-pub-3940256099942544/6300978111"'
+            buildConfigField "String", "INTERSTITIAL_AD_UNIT", '"ca-app-pub-3940256099942544/1033173712"'
+            buildConfigField "String", "REWARDED_AD_UNIT", '"ca-app-pub-3940256099942544/5224354917"'
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+            debuggable false
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ["src/main/assets"]
+        }
+    }
+}
+
+// Keep the Android asset synchronized with the canonical game file. This makes
+// index.html editable at the repository root while Android Studio still sees a
+// normal app/src/main/assets/index.html file.
+tasks.register("syncWebAsset", Copy) {
+    from(rootProject.file("../index.html"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+    rename { "index.html" }
+}
+
+tasks.named("preBuild") {
+    dependsOn(tasks.named("syncWebAsset"))
+}

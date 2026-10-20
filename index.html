@@ -588,11 +588,34 @@
       const BASE_W = 400;
       const BASE_H = 650;
       const BALL_RADIUS = 13;
-      const AD_UNITS = {
-        banner: 'testw6ac28233s',
-        interstitial: 'testb421t2f329',
-        rewarded: 'testx9dtjw2sp5'
+      const NATIVE_PROVIDER = (window.SDKBridge && typeof window.SDKBridge.getProvider === 'function')
+        ? window.SDKBridge.getProvider()
+        : 'browser';
+      const AD_UNITS_BY_PROVIDER = {
+        huawei: {
+          banner: 'testw6ac28233s',
+          interstitial: 'testb421t2f329',
+          rewarded: 'testx9dtjw2sp5'
+        },
+        // Google-provided Android test units for the Samsung/AdMob flavor.
+        samsung: {
+          banner: 'ca-app-pub-3940256099942544/6300978111',
+          interstitial: 'ca-app-pub-3940256099942544/1033173712',
+          rewarded: 'ca-app-pub-3940256099942544/5224354917'
+        },
+        // Replace these placeholders with approved Amazon Ads/APS units.
+        amazon: {
+          banner: 'amazon-test-banner',
+          interstitial: 'amazon-test-interstitial',
+          rewarded: 'amazon-test-rewarded'
+        },
+        browser: {
+          banner: 'testw6ac28233s',
+          interstitial: 'testb421t2f329',
+          rewarded: 'testx9dtjw2sp5'
+        }
       };
+      const AD_UNITS = AD_UNITS_BY_PROVIDER[NATIVE_PROVIDER] || AD_UNITS_BY_PROVIDER.browser;
       const IAP_SKUS = {
         noAds: 'remove_ads_sku_01',
         hints: 'hints_pack_sku_02',
@@ -760,6 +783,7 @@
       // back to the visual simulator, so the game is testable without HMS.
       // ---------------------------------------------------------------------
       const HMS_CONFIG = {
+        provider: NATIVE_PROVIDER,
         bannerAdUnitId: AD_UNITS.banner,
         interstitialAdUnitId: AD_UNITS.interstitial,
         rewardedAdUnitId: AD_UNITS.rewarded,
@@ -769,6 +793,9 @@
       function postToNative(message) {
         const serialized = JSON.stringify({ source: 'one-line-physics-draw', ...message });
         try {
+          if (window.SDKBridge && typeof window.SDKBridge.postMessage === 'function') {
+            window.SDKBridge.postMessage(serialized); return true;
+          }
           if (window.HMSCoreWebViewBridge && typeof window.HMSCoreWebViewBridge.postMessage === 'function') {
             window.HMSCoreWebViewBridge.postMessage(serialized); return true;
           }
