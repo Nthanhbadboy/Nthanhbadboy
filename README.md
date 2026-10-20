@@ -43,4 +43,4 @@ Import `android-app` into Android Studio and use **Build > Generate Signed Bundl
 
 ### GitHub build
 
-`.github/workflows/android-build.yml` builds all three unsigned release APKs on GitHub Actions and uploads them together as the `physics-draw-apks` artifact. These APKs are not store-signed; configure a keystore and signing secrets before release distribution.
+`.github/workflows/android-build.yml` builds all three unsigned release APKs plus signed debug APKs for device testing, then uploads them together as the `physics-draw-apks` artifact. The debug APKs are installable but are not suitable for store submission; configure a release keystore and signing secrets before distribution.
