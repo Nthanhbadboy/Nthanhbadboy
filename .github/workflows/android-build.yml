@@ -1,0 +1,67 @@
+name: Build Physics Draw APKs
+
+on:
+  push:
+    branches:
+      - arena/667974da-nthanhbadboy
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apks:
+    name: Build Huawei, Amazon, and Samsung APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build unsigned release APKs
+        run: |
+          gradle --no-daemon -p android-app \
+            assembleHuaweiRelease \
+            assembleAmazonRelease \
+            assembleSamsungRelease
+
+      - name: Collect APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          for flavor in huawei amazon samsung; do
+            apk="$(find android-app/app/build/outputs/apk -type f -iname "*${flavor}*release*.apk" | head -n 1)"
+            test -n "$apk"
+            cp "$apk" "artifacts/physics-draw-${flavor}-release-unsigned.apk"
+          done
+          sha256sum artifacts/*.apk | tee artifacts/SHA256SUMS.txt
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: physics-draw-apks
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30

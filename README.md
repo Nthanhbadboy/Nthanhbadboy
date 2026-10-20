@@ -40,3 +40,7 @@ gradle -p android-app assembleSamsungRelease
 ```
 
 Import `android-app` into Android Studio and use **Build > Generate Signed Bundle / APK** for a signed release. The source is dependency-free on purpose: `SdkBridge.java` contains the provider-neutral JSON contract and a build-safe `DemoStoreAdapter`. Replace that adapter with the official Huawei Ads/IAP, Amazon Ads/APS, or approved Samsung/AdMob implementation before publishing; do not ship the demo callback adapter as a monetized production integration. The selected flavor is exposed through `BuildConfig.STORE_PROVIDER`; the page selects Huawei test units, Google Android test units for Samsung/AdMob, or Amazon placeholders through `AD_UNITS_BY_PROVIDER`. Replace the Amazon placeholders and connect the official native SDK before publishing.
+
+### GitHub build
+
+`.github/workflows/android-build.yml` builds all three unsigned release APKs on GitHub Actions and uploads them together as the `physics-draw-apks` artifact. These APKs are not store-signed; configure a keystore and signing secrets before release distribution.
