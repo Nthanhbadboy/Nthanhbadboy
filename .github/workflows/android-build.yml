@@ -26,14 +26,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      # --- 1. TỰ ĐỘNG SINH KEYSTORE RELEASE CHUẨN XỊN ---
       - name: Generate Release Keystore
         run: |
           keytool -genkey -v -keystore release-key.jks -keyalg RSA -keysize 2048 -validity 10000 \
           -alias physicsdraw -passin pass:android -passout pass:android \
           -dname "CN=Physics Draw, OU=Dev, O=Nthanh, L=Haiphong, C=VN"
 
-      # --- 2. BUILD ANDROID APKs (HUAWEI, AMAZON, SAMSUNG) ---
       - name: Build Android Release APKs
         working-directory: ./android-app
         run: |
@@ -49,7 +47,6 @@ jobs:
             fi
           done
 
-      # --- 3. BUILD WINDOWS PACKAGE (.ZIP / PORTABLE) ---
       - name: Build Windows Package
         run: |
           mkdir -p windows-build/assets
@@ -57,7 +54,6 @@ jobs:
           cd windows-build
           zip -r ../physics-draw-windows-portable.zip .
 
-      # --- 4. UPLOAD ARTIFACTS LÊN GITHUB ACTIONS ---
       - name: Upload Release APK Artifacts
         uses: actions/upload-artifact@v4
         with:
