@@ -11,6 +11,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Official Huawei Maven repository for the Huawei product flavor.
+        maven { url = uri("https://developer.huawei.com/repo/") }
     }
 }
 

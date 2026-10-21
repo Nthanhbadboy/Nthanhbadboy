@@ -92,6 +92,14 @@ android {
     }
 }
 
+dependencies {
+    // AppGallery's official HMS IAP SDK is linked only into the Huawei flavor.
+    // The free build does not expose products or start a checkout flow until
+    // AppGallery products, AG Connect configuration, and receipt verification
+    // are supplied.
+    huaweiImplementation "com.huawei.hms:iap:6.13.0.300"
+}
+
 // Keep the Android asset synchronized with the canonical game file. This makes
 // index.html editable at the repository root while Android Studio still sees a
 // normal app/src/main/assets/index.html file.

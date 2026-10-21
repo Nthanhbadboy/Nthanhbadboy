@@ -20,7 +20,7 @@ The game includes:
 - Local progress persistence for unlocked levels, stars, hints, language, and sound.
 - Huawei WebView hooks for the official Ads integration. Native hosts can provide `SDKBridge`, `HMSCoreWebViewBridge`, or `HuaweiAds`, or invoke the global callbacks exposed by `HMSGameCallbacks`.
 
-The free release ships no store product IDs, transaction UI, payment SDK, or browser transaction fallback. Store billing can be added in a later storefront-specific build only after official products and server-side receipt verification are configured.
+The free release ships no store product IDs, transaction UI, or browser transaction fallback. The Huawei flavor links the official HMS Core IAP SDK and initializes its client only; it does not query products, open checkout, or grant entitlements. Enable paid features only after adding the AppGallery catalogue, AG Connect configuration, and server-side receipt verification. No third-party payment SDK is used.
 
 ## Android Studio wrapper
 

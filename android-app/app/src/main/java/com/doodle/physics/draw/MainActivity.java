@@ -66,7 +66,25 @@ public final class MainActivity extends Activity {
         gameWebView.addJavascriptInterface(sdkBridge, "SDKBridge");
         gameWebView.addJavascriptInterface(sdkBridge, "HMSCoreWebViewBridge");
         gameWebView.addJavascriptInterface(sdkBridge, "HuaweiHMS");
+        initializeHuaweiIapSdk();
         gameWebView.loadUrl("file:///android_asset/index.html");
+    }
+
+    /**
+     * The Huawei flavor contains the official HMS IAP SDK. Initialization is
+     * deliberately limited to linking the client; the free release does not
+     * query products, open checkout, or grant entitlements.
+     */
+    private void initializeHuaweiIapSdk() {
+        if (!"huawei".equals(BuildConfig.STORE_PROVIDER)) {
+            return;
+        }
+        try {
+            Class<?> integration = Class.forName("com.doodle.physics.draw.HuaweiIapIntegration");
+            integration.getMethod("initialize", Activity.class).invoke(null, this);
+        } catch (Exception exception) {
+            // Keep the free game usable if HMS Core is unavailable.
+        }
     }
 
     private void configureSystemBars() {
