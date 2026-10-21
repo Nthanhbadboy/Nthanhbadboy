@@ -1192,21 +1192,19 @@ class _HomeScreenState extends State<HomeScreen> {
               : Icons.water_drop_rounded,
           size: 23,
         ),
-        label: Flexible(
-          child: Text(
-            ejector.isEjecting
-                ? l10n.translate(
-                    'btn_stop_eject',
-                    <String, String>{'time': ejector.formattedCountdown},
-                  )
-                : l10n.translate('btn_start_eject'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-            ),
+        label: Text(
+          ejector.isEjecting
+              ? l10n.translate(
+                  'btn_stop_eject',
+                  <String, String>{'time': ejector.formattedCountdown},
+                )
+              : l10n.translate('btn_start_eject'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 14.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
           ),
         ),
       ),

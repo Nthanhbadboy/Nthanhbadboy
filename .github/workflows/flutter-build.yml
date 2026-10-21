@@ -56,8 +56,8 @@ jobs:
         run: |
           set -o pipefail
           if ! flutter test 2>&1 | tee "$RUNNER_TEMP/test.log"; then
-            msg="$(tail -n 35 "$RUNNER_TEMP/test.log" | tr '\n' ' ' | cut -c1-950)"
-            echo "::error title=flutter test failed::$msg"
+            summary="$(grep -E '(EXCEPTION|ParentData|overflowed|Expected|Actual|Failed)' "$RUNNER_TEMP/test.log" | head -n 10 | tr '\n' ' ' | cut -c1-900)"
+            echo "::error title=flutter test summary::$summary"
             exit 1
           fi
           echo "::notice title=flutter test::$(tail -n 2 "$RUNNER_TEMP/test.log" | tr '\n' ' ')"
