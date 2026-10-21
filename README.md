@@ -44,6 +44,13 @@ Import `android-app` into Android Studio and use **Build > Generate Signed Bundl
 
 See [`SIGNING.md`](SIGNING.md) for permanent release-keystore setup and GitHub Actions secrets.
 
+### Privacy policy
+
+The store-safe release privacy policy is published from [`docs/privacy-policy.html`](docs/privacy-policy.html). After the Pages workflow is enabled, the public URLs are:
+
+- Policy: `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html`
+- Privacy rights: `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html#privacy-rights`
+
 ### GitHub build
 
 `.github/workflows/android-build.yml` always builds the three signed debug APKs for testing. If all four signing secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) exist, it also signs and uploads the three release APKs; otherwise it skips release rather than uploading an unsigned APK. A parallel Windows job uploads `physics-draw-windows.zip`, a portable HTML package with `Run-Physics-Draw.bat`; it is not a native `.exe` and requires the CDN network assets.
