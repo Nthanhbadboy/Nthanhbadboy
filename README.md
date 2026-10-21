@@ -34,13 +34,13 @@ The Gradle `syncWebAsset` task copies the canonical root `index.html` into that 
 Three store variants are included. In Android Studio, choose the matching variant under **Build Variants** (`huaweiRelease`, `amazonRelease`, or `samsungRelease`). If a local Gradle installation is available, the equivalent tasks are:
 
 ```bash
-gradle -p android-app assembleHuaweiRelease
-gradle -p android-app assembleAmazonRelease
-gradle -p android-app assembleSamsungRelease
+gradle -p android-app assembleHuaweiDebug
+gradle -p android-app assembleAmazonDebug
+gradle -p android-app assembleSamsungDebug
 ```
 
 Import `android-app` into Android Studio and use **Build > Generate Signed Bundle / APK** for a signed release. The source is dependency-free on purpose: `SdkBridge.java` contains the provider-neutral JSON contract and a build-safe `DemoStoreAdapter`. Replace that adapter with the official Huawei Ads/IAP, Amazon Ads/APS, or approved Samsung/AdMob implementation before publishing; do not ship the demo callback adapter as a monetized production integration. The selected flavor is exposed through `BuildConfig.STORE_PROVIDER`; the page selects Huawei test units, Google Android test units for Samsung/AdMob, or Amazon placeholders through `AD_UNITS_BY_PROVIDER`. Replace the Amazon placeholders and connect the official native SDK before publishing.
 
 ### GitHub build
 
-`.github/workflows/android-build.yml` builds all three unsigned release APKs plus signed debug APKs for device testing, then uploads them together as the `physics-draw-apks` artifact. The debug APKs are installable but are not suitable for store submission; configure a release keystore and signing secrets before distribution. A parallel Windows job uploads `physics-draw-windows.zip`, a portable HTML package with `Run-Physics-Draw.bat`; it is not a native `.exe` and requires the CDN network assets.
+`.github/workflows/android-build.yml` builds only the three signed debug APKs for device testing, so no unsigned APK is uploaded. They are installable but are not suitable for store submission; configure a private release keystore and signing secrets separately before distribution. A parallel Windows job uploads `physics-draw-windows.zip`, a portable HTML package with `Run-Physics-Draw.bat`; it is not a native `.exe` and requires the CDN network assets.

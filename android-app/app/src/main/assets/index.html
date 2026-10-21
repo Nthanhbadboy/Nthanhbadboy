@@ -699,6 +699,8 @@
       let engine = null;
       let ballBody = null;
       let goalSensor = null;
+      let goalCandidateAt = 0;
+      let goalSettledFrames = 0;
       let drawnBodies = [];
       let pendingStroke = [];
       let currentStroke = [];
@@ -742,7 +744,8 @@
       function makeLevel(id) {
         if (id <= LEVEL_TEMPLATES.length) {
           const source = deepCopy(LEVEL_TEMPLATES[id - 1]);
-          return { id, name: levelTitle(id), world: Math.floor((id - 1) / 20) + 1, budget: 250 + ((id * 17) % 75), hazards: [], ...source, hazards: source.hazards || [] };
+          const cup = { ...source.cup, w: source.cup.w || 62, h: source.cup.h || 46 };
+          return { id, name: levelTitle(id), world: Math.floor((id - 1) / 20) + 1, budget: 250 + ((id * 17) % 75), hazards: [], ...source, cup, hazards: source.hazards || [] };
         }
         const n = id;
         const templateIndex = (n - 1) % LEVEL_TEMPLATES.length;
@@ -756,7 +759,9 @@
         };
         const cup = {
           x: mirror ? 70 + Math.round(rand(n + 12) * 70) : 260 + Math.round(rand(n + 12) * 70),
-          y: 135 + Math.round(rand(n + 18) * 425)
+          y: 135 + Math.round(rand(n + 18) * 425),
+          w: 62,
+          h: 46
         };
         if (Math.abs(cup.x - ball.x) < 100) cup.x = mirror ? 320 : 80;
         const shift = Math.round((wave - .5) * 70);
@@ -931,6 +936,8 @@
         engine = Matter.Engine.create({ enableSleeping: true });
         engine.gravity.y = 1;
         drawnBodies = [];
+        goalCandidateAt = 0;
+        goalSettledFrames = 0;
         const level = currentLevel;
         const bodies = [];
         bodies.push(
@@ -942,10 +949,15 @@
         level.hazards.forEach((item) => bodies.push(createBodyForPlatform(item, 'hazard')));
 
         const cup = level.cup;
-        const cupBottom = Matter.Bodies.rectangle(cup.x, cup.y + cup.h - 4, cup.w, 8, { isStatic: true, label: 'goal-cup' });
-        const cupLeft = Matter.Bodies.rectangle(cup.x - cup.w / 2 + 4, cup.y + cup.h / 2 - 2, 8, cup.h, { isStatic: true, label: 'goal-cup' });
-        const cupRight = Matter.Bodies.rectangle(cup.x + cup.w / 2 - 4, cup.y + cup.h / 2 - 2, 8, cup.h, { isStatic: true, label: 'goal-cup' });
-        goalSensor = Matter.Bodies.rectangle(cup.x, cup.y + 16, cup.w - 8, cup.h - 11, { isStatic: true, isSensor: true, label: 'goal-sensor' });
+        // Thick, overlapping static walls form a real U-shaped catch basin.
+        // The sensor is separate from the solids so victory never depends on
+        // a thin visual line or on a ball tunnelling through an open gap.
+        const cupThickness = 12;
+        const cupMaterial = { isStatic: true, label: 'goal-cup', friction: .95, restitution: .05 };
+        const cupBottom = Matter.Bodies.rectangle(cup.x, cup.y + cup.h - cupThickness / 2, cup.w, cupThickness, cupMaterial);
+        const cupLeft = Matter.Bodies.rectangle(cup.x - cup.w / 2 + cupThickness / 2, cup.y + cup.h / 2, cupThickness, cup.h, cupMaterial);
+        const cupRight = Matter.Bodies.rectangle(cup.x + cup.w / 2 - cupThickness / 2, cup.y + cup.h / 2, cupThickness, cup.h, cupMaterial);
+        goalSensor = Matter.Bodies.rectangle(cup.x, cup.y + cup.h / 2 - 4, Math.max(12, cup.w - cupThickness * 2 - 4), Math.max(12, cup.h - cupThickness - 6), { isStatic: true, isSensor: true, label: 'goal-sensor' });
         bodies.push(cupBottom, cupLeft, cupRight, goalSensor);
         ballBody = Matter.Bodies.circle(level.ball.x, level.ball.y, BALL_RADIUS, {
           label: 'ball', restitution: .32, friction: .5, frictionAir: .004, density: .004
@@ -961,7 +973,7 @@
           const a = pair.bodyA;
           const b = pair.bodyB;
           const isBallGoal = (a === ballBody && b === goalSensor) || (b === ballBody && a === goalSensor);
-          if (isBallGoal) finishLevel(true);
+          if (isBallGoal) goalCandidateAt = goalCandidateAt || performance.now();
           const isBallHazard = (a === ballBody && b.label === 'hazard') || (b === ballBody && a.label === 'hazard');
           if (isBallHazard) finishLevel(false, 'hazard');
         });
@@ -1284,13 +1296,33 @@
         ctx.globalAlpha = 1;
       }
 
+      function checkCupSettlement(now) {
+        if (!ballBody || !currentLevel || !currentLevel.cup) return false;
+        const cup = currentLevel.cup;
+        const inX = Math.abs(ballBody.position.x - cup.x) <= cup.w / 2 - 11;
+        const inY = ballBody.position.y > cup.y + 5 && ballBody.position.y < cup.y + cup.h - 8;
+        const speed = Math.hypot(ballBody.velocity.x, ballBody.velocity.y);
+        if (!inX || !inY) {
+          goalCandidateAt = 0;
+          goalSettledFrames = 0;
+          return false;
+        }
+        goalCandidateAt = goalCandidateAt || now;
+        if (speed < 2.5) goalSettledFrames += 1;
+        else goalSettledFrames = 0;
+        // Require the ball to remain inside the thick U-shaped cup for a few
+        // physics frames. This avoids false wins from a fast pass-through.
+        return now - goalCandidateAt >= 120 && goalSettledFrames >= 6;
+      }
+
       function frame(now) {
         if (!loopStarted) return;
         const delta = Math.min(34, lastFrame ? now - lastFrame : 16.7);
         lastFrame = now;
         if (phase === 'running' && engine) {
           Matter.Engine.update(engine, delta);
-          if (ballBody && (ballBody.position.y > BASE_H + 90 || performance.now() - runStartedAt > 15000)) finishLevel(false);
+          if (checkCupSettlement(now)) finishLevel(true);
+          else if (ballBody && (ballBody.position.y > BASE_H + 90 || performance.now() - runStartedAt > 15000)) finishLevel(false);
         }
         renderScene();
         requestAnimationFrame(frame);

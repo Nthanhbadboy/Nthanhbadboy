@@ -49,27 +49,21 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build release and installable debug APKs
+      - name: Build signed debug APKs
         run: |
           gradle --no-daemon -p android-app \
-            assembleHuaweiRelease \
-            assembleAmazonRelease \
-            assembleSamsungRelease \
             assembleHuaweiDebug \
             assembleAmazonDebug \
             assembleSamsungDebug
 
-      - name: Collect APKs
+      - name: Collect signed APKs
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts
           for flavor in huawei amazon samsung; do
-            release_apk="$(find android-app/app/build/outputs/apk -type f -iname "*${flavor}*release*.apk" | head -n 1)"
             debug_apk="$(find android-app/app/build/outputs/apk -type f -iname "*${flavor}*debug*.apk" | head -n 1)"
-            test -n "$release_apk"
             test -n "$debug_apk"
-            cp "$release_apk" "artifacts/physics-draw-${flavor}-release-unsigned.apk"
             cp "$debug_apk" "artifacts/physics-draw-${flavor}-debug-signed.apk"
           done
           sha256sum artifacts/*.apk | tee artifacts/SHA256SUMS.txt
