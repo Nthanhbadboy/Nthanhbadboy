@@ -7,7 +7,6 @@ on:
 
 jobs:
   build-all:
-stores:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -19,7 +18,7 @@ stores:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Node.js (for web/webview assets if needed)
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -27,22 +26,20 @@ stores:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      # --- 1. TỰ ĐỘNG SINH KEYSTORE RELEASE CHUẨN XỊN NGAY TRÊN SERVER ---
+      # --- 1. TỰ ĐỘNG SINH KEYSTORE RELEASE CHUẨN XỊN ---
       - name: Generate Release Keystore
         run: |
           keytool -genkey -v -keystore release-key.jks -keyalg RSA -keysize 2048 -validity 10000 \
           -alias physicsdraw -passin pass:android -passout pass:android \
           -dname "CN=Physics Draw, OU=Dev, O=Nthanh, L=Haiphong, C=VN"
 
-      # --- 2. BUILD ANDROID APKs (HUWEAI, AMAZON, SAMSUNG) ---
+      # --- 2. BUILD ANDROID APKs (HUAWEI, AMAZON, SAMSUNG) ---
       - name: Build Android Release APKs
         working-directory: ./android-app
         run: |
           chmod +x gradlew
-          # Build bản release chưa ký trước
           ./gradlew assembleRelease
           
-          # Ký số trực tiếp bằng keystore vừa sinh tự động ở trên
           cd app/build/outputs/apk/release/
           for apk in *.apk; do
             if [ -f "$apk" ]; then
@@ -57,7 +54,6 @@ stores:
         run: |
           mkdir -p windows-build/assets
           cp -r android-app/app/src/main/assets/* windows-build/assets/
-          # Tạo gói nén portable cho Windows từ nội dung HTML5 / WebView wrapper
           cd windows-build
           zip -r ../physics-draw-windows-portable.zip .
 
