@@ -95,9 +95,13 @@ jobs:
             echo "ANDROID_RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
+      - name: Clean Android build outputs
+        run: |
+          gradle --no-daemon -p android-app clean
+
       - name: Build signed release APKs
         run: |
-          gradle --no-daemon -p android-app \
+          gradle --no-daemon --refresh-dependencies -p android-app \
             assembleHuaweiRelease \
             assembleAmazonRelease \
             assembleSamsungRelease
@@ -108,11 +112,24 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
           apksigner="$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner"
+          aapt2="$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt2"
 
           for flavor in huawei amazon samsung; do
             apk="$(find android-app/app/build/outputs/apk -type f -iname "*${flavor}*release*.apk" ! -iname '*unsigned*' | head -n 1)"
             test -n "$apk"
             "$apksigner" verify --verbose "$apk" >/dev/null
+
+            # Release guard: no merged dependency may add Google Play Billing
+            # or a known third-party payment SDK to any storefront APK.
+            if "$aapt2" dump permissions "$apk" | grep -Fq 'com.android.vending.BILLING'; then
+              echo "Forbidden Google Play Billing permission found in $apk" >&2
+              exit 1
+            fi
+            if unzip -p "$apk" classes.dex | strings | grep -Eiq 'com/(android/billingclient|stripe|paypal)|BillingClient|GoogleBilling|PayPal'; then
+              echo "Forbidden third-party billing string found in $apk" >&2
+              exit 1
+            fi
+
             cp "$apk" "artifacts/physics-draw-${flavor}-release-signed.apk"
           done
 
