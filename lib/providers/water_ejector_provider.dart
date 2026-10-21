@@ -1,15 +1,20 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../utils/sound_generator.dart';
 
-/// Provider quản lý toàn bộ trạng thái & vòng đời âm thanh cho Water Ejector & Test Speaker
+/// Provider quản lý trạng thái chu trình đẩy nước, kiểm tra loa & đổi ngôn ngữ (Change Locale)
 class WaterEjectorProvider extends ChangeNotifier {
-  WaterEjectorProvider({bool enablePlatformAudio = true})
-      : _enablePlatformAudio = enablePlatformAudio {
+  WaterEjectorProvider({
+    bool enablePlatformAudio = true,
+    Locale initialLocale = const Locale('en'),
+  })  : _enablePlatformAudio = enablePlatformAudio,
+        _locale = initialLocale {
     if (_enablePlatformAudio) {
       _initAudioPlayer();
       refreshMediaVolume();
@@ -24,8 +29,11 @@ class WaterEjectorProvider extends ChangeNotifier {
   StreamSubscription<void>? _playerCompleteSub;
   Timer? _countdownTimer;
 
+  // Ngôn ngữ hiện hành (Mặc định: Tiếng Anh 'en')
+  Locale _locale;
+
   EjectMode _selectedMode = EjectMode.standard165Hz;
-  int _selectedDurationSeconds = 30; // Mặc định 30 giây (hỗ trợ 30s hoặc 60s)
+  int _selectedDurationSeconds = 30;
   bool _isEjecting = false;
   int _elapsedMilliseconds = 0;
   double _currentFrequencyHz = 165.0;
@@ -37,6 +45,7 @@ class WaterEjectorProvider extends ChangeNotifier {
   VoidCallback? onCycleCompleted;
 
   // --- Getters ---
+  Locale get locale => _locale;
   EjectMode get selectedMode => _selectedMode;
   int get selectedDurationSeconds => _selectedDurationSeconds;
   bool get isEjecting => _isEjecting;
@@ -45,6 +54,20 @@ class WaterEjectorProvider extends ChangeNotifier {
   double get currentFrequencyHz => _currentFrequencyHz;
   int get completedCyclesCount => _completedCyclesCount;
   double get mediaVolumePercent => _mediaVolumePercent;
+
+  /// Đổi ngôn ngữ giao diện linh hoạt trong 9 ngôn ngữ quốc tế được hỗ trợ
+  void changeLocale(Locale newLocale) {
+    final bool supported = AppLocalizations.supportedLocales.any(
+      (Locale item) => item.languageCode == newLocale.languageCode,
+    );
+    final Locale resolved =
+        supported ? Locale(newLocale.languageCode) : const Locale('en');
+    if (_locale.languageCode == resolved.languageCode) return;
+
+    _locale = resolved;
+    HapticFeedback.selectionClick();
+    notifyListeners();
+  }
 
   int get totalDurationMilliseconds => _selectedDurationSeconds * 1000;
 
@@ -68,20 +91,15 @@ class WaterEjectorProvider extends ChangeNotifier {
     return '${minutes.toString().padLeft(2, '0')}:${remSecs.toString().padLeft(2, '0')}';
   }
 
-  /// Thông điệp hướng dẫn trực quan theo giai đoạn đẩy nước
-  String get statusHeadline {
-    if (_activeSpeakerTest != null) {
-      return 'Đang phát ${_activeSpeakerTest!.label} (${_activeSpeakerTest!.frequencyRange})';
-    }
-    if (!_isEjecting) {
-      return 'Sẵn sàng làm sạch màng loa';
-    }
+  /// Khóa trạng thái đa ngôn ngữ theo giai đoạn đẩy nước
+  String get statusStageKey {
+    if (!_isEjecting) return 'status_ready';
     if (progress < 0.35) {
-      return 'Giai đoạn 1/3: Tạo dao động tách nước khỏi lưới loa...';
+      return 'status_stage_1';
     } else if (progress < 0.75) {
-      return 'Giai đoạn 2/3: Đẩy giọt nước ra ngoài bằng áp suất sóng âm...';
+      return 'status_stage_2';
     } else {
-      return 'Giai đoạn 3/3: Làm khô vi màng loa & ổn định âm thanh...';
+      return 'status_stage_3';
     }
   }
 
@@ -95,7 +113,7 @@ class WaterEjectorProvider extends ChangeNotifier {
         }
       });
     } catch (e) {
-      debugPrint('Khởi tạo AudioPlayer gặp ngoại lệ: $e');
+      debugPrint('AudioPlayer initialization warning: $e');
     }
   }
 
@@ -109,9 +127,7 @@ class WaterEjectorProvider extends ChangeNotifier {
         _mediaVolumePercent = vol.clamp(0.0, 1.0);
         notifyListeners();
       }
-    } catch (_) {
-      // Bỏ qua an toàn trên thiết bị giả lập hoặc môi trường test
-    }
+    } catch (_) {}
   }
 
   /// Đặt nhanh âm lượng loa lên 100% để đạt lực đẩy nước tối đa
@@ -136,7 +152,7 @@ class WaterEjectorProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Chọn chế độ sóng âm (165Hz Chuẩn / Quét 100-200Hz / Xung Mạnh)
+  /// Chọn chế độ sóng âm (165Hz Standard / 100-200Hz Sweep / Turbo Pulse)
   Future<void> selectMode(EjectMode mode) async {
     if (_selectedMode == mode) return;
     _selectedMode = mode;
@@ -144,7 +160,6 @@ class WaterEjectorProvider extends ChangeNotifier {
         SoundGenerator.calculateLiveFrequency(_selectedMode, 0);
     HapticFeedback.selectionClick();
 
-    // Nếu đang chạy đẩy nước, chuyển mượt ngay sang dạng sóng mới mà không gián đoạn bộ đếm
     if (_isEjecting && _enablePlatformAudio && _audioPlayer != null) {
       try {
         final Uint8List wavBytes = SoundGenerator.getEjectWavBytes(mode);
@@ -153,7 +168,7 @@ class WaterEjectorProvider extends ChangeNotifier {
         await _audioPlayer!.setVolume(1.0);
         await _audioPlayer!.play(BytesSource(wavBytes, mimeType: 'audio/wav'));
       } catch (e) {
-        debugPrint('Chuyển chế độ âm thanh lỗi: $e');
+        debugPrint('Error switching audio mode: $e');
       }
     }
     notifyListeners();
@@ -194,7 +209,6 @@ class WaterEjectorProvider extends ChangeNotifier {
       _currentFrequencyHz =
           SoundGenerator.calculateLiveFrequency(_selectedMode, elapsedSec);
 
-      // Rung phản hồi nhẹ mỗi 5 giây trên thiết bị thực để tăng cảm nhận cơ học
       if (_elapsedMilliseconds % 5000 == 0) {
         HapticFeedback.lightImpact();
       }
@@ -221,7 +235,7 @@ class WaterEjectorProvider extends ChangeNotifier {
         await _audioPlayer!.setVolume(1.0);
         await _audioPlayer!.play(BytesSource(wavBytes, mimeType: 'audio/wav'));
       } catch (e) {
-        debugPrint('Không thể phát sóng âm đẩy nước: $e');
+        debugPrint('Unable to play water ejection wave: $e');
       }
     }
   }
@@ -242,7 +256,6 @@ class WaterEjectorProvider extends ChangeNotifier {
     HapticFeedback.mediumImpact();
     notifyListeners();
 
-    // Kích hoạt sự kiện hoàn tất để HomeScreen tự động hiển thị Huawei Interstitial Ad
     onCycleCompleted?.call();
   }
 
@@ -290,7 +303,7 @@ class WaterEjectorProvider extends ChangeNotifier {
         await _audioPlayer!.setVolume(1.0);
         await _audioPlayer!.play(BytesSource(wavBytes, mimeType: 'audio/wav'));
       } catch (e) {
-        debugPrint('Không thể phát âm thanh kiểm tra loa: $e');
+        debugPrint('Unable to play speaker test tone: $e');
         _activeSpeakerTest = null;
         notifyListeners();
       }

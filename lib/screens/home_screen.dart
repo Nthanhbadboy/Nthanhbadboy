@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:huawei_ads/huawei_ads.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/water_ejector_provider.dart';
 import '../utils/sound_generator.dart';
 import '../widgets/wave_visualizer.dart';
@@ -10,20 +12,17 @@ import '../widgets/wave_visualizer.dart';
 /// Cấu hình Ad Slot ID cho Huawei Petal Ads (HMS Ads Kit).
 ///
 /// LƯU Ý KHI PHÁT HÀNH LÊN HUAWEI APPGALLERY:
-/// - Các ID dưới đây là Test Ad Slot ID chính thức từ Huawei Developer Documentation
-///   đảm bảo luôn hiển thị quảng cáo mẫu an toàn trong quá trình phát triển & kiểm duyệt.
-/// - Trước khi build bản Production chính thức lên AppGallery Connect, hãy thay bằng
-///   Slot ID thật được cấp trong Huawei Petal Publisher Center.
+/// - Các ID dưới đây là Test Ad Slot ID chính thức từ Huawei Developer Documentation.
+/// - Trước khi upload bản chính thức lên AppGallery Connect, hãy thay bằng
+///   Slot ID thật tạo trong Huawei Petal Publisher Center.
 class HuaweiAdsConfig {
   HuaweiAdsConfig._();
 
-  /// Banner Ad Slot ID (Kích thước 320x50 đặt cố định ở đáy màn hình chính)
   static const String bannerAdSlotId = 'testw6vs28auh3';
-
-  /// Interstitial Ad Slot ID (Quảng cáo toàn màn hình bung ra khi đẩy nước hoàn tất)
   static const String interstitialAdSlotId = 'testb4znbuh3n2';
 
-  /// Kiểm tra nền tảng Android thực tế để gọi Native PlatformView / MethodChannel của HMS
+  static const String developerEmail = 'alphaplus.thanh82@gmail.com';
+
   static bool get isAndroidPlatform =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 }
@@ -58,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    // 2. Tải trước (Preload) Huawei Interstitial Ad để sẵn sàng hiển thị ngay khi đẩy nước xong
+    // 2. Tải trước (Preload) Huawei Interstitial Ad để sẵn sàng hiển thị khi đẩy nước xong
     _loadInterstitialAd();
 
     // 3. Lắng nghe sự kiện hoàn tất chu trình đẩy nước từ WaterEjectorProvider
@@ -72,7 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Khởi tạo & tải trước Huawei Interstitial Ad (Quảng cáo toàn màn hình)
   Future<void> _loadInterstitialAd() async {
     if (!HuaweiAdsConfig.isAndroidPlatform) {
-      // Ở môi trường Web / Preview, đánh dấu chế độ mô phỏng quảng cáo sẵn sàng
       if (mounted) {
         setState(() => _isInterstitialReady = true);
       }
@@ -93,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() => _isInterstitialReady = true);
           } else if (event == AdEvent.closed) {
             setState(() => _isInterstitialReady = false);
-            // Tự động nạp quảng cáo mới cho lần đẩy nước kế tiếp và mở hộp thoại hoàn tất
             _loadInterstitialAd();
             _showCleanSuccessDialog();
           } else if (event == AdEvent.failed) {
@@ -105,11 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _interstitialAd = interstitial;
       await interstitial.loadAd();
     } catch (e) {
-      debugPrint('Không thể tải trước Huawei Interstitial Ad: $e');
+      debugPrint('Huawei Interstitial Ad preload error: $e');
     }
   }
 
-  /// Tự động bung Interstitial Ad ngay khi chu trình đẩy nước (Water Ejector) hoàn tất 100%
+  /// Tự động bung Interstitial Ad ngay khi chu trình đẩy nước hoàn tất 100%
   Future<void> _onWaterEjectCycleCompleted() async {
     if (!mounted) return;
 
@@ -119,10 +116,10 @@ class _HomeScreenState extends State<HomeScreen> {
           final bool loaded = await _interstitialAd!.isLoaded() ?? false;
           if (loaded) {
             await _interstitialAd!.show();
-            return; // Hộp thoại kết quả sẽ hiện ngay sau khi người dùng đóng Interstitial Ad
+            return;
           }
         } catch (e) {
-          debugPrint('Lỗi khi hiển thị Huawei Interstitial Ad: $e');
+          debugPrint('Huawei Interstitial Ad display error: $e');
         }
       }
       _loadInterstitialAd();
@@ -132,19 +129,19 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Trên Web / Preview: Hiển thị màn hình mô phỏng Huawei Petal Interstitial Ad trực quan
     await _showPreviewInterstitialModal();
     if (mounted) {
       _showCleanSuccessDialog();
     }
   }
 
-  /// Hộp thoại thông báo hoàn tất đẩy nước & gợi ý kiểm tra lại loa ngay
+  /// Hộp thoại thông báo hoàn tất đẩy nước (đa ngôn ngữ)
   void _showCleanSuccessDialog() {
     if (!mounted) return;
     showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
+        final AppLocalizations l10n = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
           backgroundColor: const Color(0xFF0E1D38),
           shape: RoundedRectangleBorder(
@@ -153,29 +150,29 @@ class _HomeScreenState extends State<HomeScreen> {
               color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
             ),
           ),
-          title: const Row(
+          title: Row(
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.verified_rounded,
                 color: Color(0xFF64FFDA),
-                size: 28,
+                size: 26,
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Hoàn tất đẩy nước!',
-                  style: TextStyle(
+                  l10n.translate('dialog_complete_title'),
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 19,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          content: const Text(
-            'Chu trình rung màng loa đã hoàn thành 100%. Hãy lau khô nhẹ bề mặt lưới loa và bấm "Test Beep" hoặc "Test Bass" để kiểm tra độ trong của âm thanh.',
-            style: TextStyle(
+          content: Text(
+            l10n.translate('dialog_complete_body'),
+            style: const TextStyle(
               color: Color(0xFFB8CCE4),
               fontSize: 14,
               height: 1.45,
@@ -184,9 +181,9 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
-                'Đóng',
-                style: TextStyle(color: Color(0xFF90A4AE)),
+              child: Text(
+                l10n.translate('btn_close'),
+                style: const TextStyle(color: Color(0xFF90A4AE)),
               ),
             ),
             FilledButton.icon(
@@ -201,9 +198,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     .toggleSpeakerTest(SpeakerTestType.beep);
               },
               icon: const Icon(Icons.volume_up_rounded, size: 18),
-              label: const Text(
-                'Test Loa Ngay',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              label: Text(
+                l10n.translate('btn_test_now'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -212,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Màn hình mô phỏng Interstitial Ad khi chạy trên trình duyệt Web (Preview Mode)
+  /// Màn hình mô phỏng Interstitial Ad khi chạy trên Web / Preview Mode
   Future<void> _showPreviewInterstitialModal() async {
     if (!mounted) return;
     await showDialog<void>(
@@ -220,6 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       barrierColor: Colors.black.withValues(alpha: 0.86),
       builder: (BuildContext modalContext) {
+        final AppLocalizations l10n = AppLocalizations.of(modalContext)!;
         return Dialog(
           backgroundColor: const Color(0xFF0B192E),
           insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
@@ -234,21 +232,25 @@ class _HomeScreenState extends State<HomeScreen> {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFCE0E2D),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'AD • HUAWEI PETAL ADS',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCE0E2D),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          l10n.translate('ad_preview_badge'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
@@ -256,11 +258,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     IconButton(
                       onPressed: () => Navigator.of(modalContext).pop(),
                       icon: const Icon(Icons.close_rounded, color: Colors.white),
-                      tooltip: 'Đóng quảng cáo',
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
@@ -269,24 +270,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: const Icon(
                     Icons.campaign_rounded,
-                    size: 52,
+                    size: 48,
                     color: Color(0xFFFF5252),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Huawei Interstitial Ad',
-                  style: TextStyle(
+                const SizedBox(height: 14),
+                Text(
+                  l10n.translate('ad_interstitial_title'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 19,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Slot ID: ${HuaweiAdsConfig.interstitialAdSlotId}\nQuảng cáo toàn màn hình tự động hiển thị sau khi hoàn tất chu trình đẩy nước trên thiết bị HMS.',
+                Text(
+                  l10n.translate(
+                    'ad_interstitial_body',
+                    <String, String>{
+                      'slotId': HuaweiAdsConfig.interstitialAdSlotId,
+                    },
+                  ),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFFB0C4DE),
                     fontSize: 13,
                     height: 1.45,
@@ -302,9 +309,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 13),
                     ),
                     onPressed: () => Navigator.of(modalContext).pop(),
-                    child: const Text(
-                      'Đóng & Xem Kết Quả Làm Sạch',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    child: Text(
+                      l10n.translate('ad_close_continue'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -316,7 +323,293 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Hộp thoại hướng dẫn đặt máy đúng tư thế vật lý để đẩy nước đạt hiệu quả 100%
+  /// Menu chọn nhanh 9 ngôn ngữ quốc tế (Language Selector)
+  void _showLanguageSelectorDialog(WaterEjectorProvider ejector) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final AppLocalizations l10n = AppLocalizations.of(dialogContext)!;
+        return Dialog(
+          backgroundColor: const Color(0xFF0E1D38),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: BorderSide(
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.language_rounded,
+                      color: Color(0xFF00E5FF),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.translate('language_menu_title'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF90A4AE),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 380),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: AppLocalizations.languageOptions.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    itemBuilder: (BuildContext context, int index) {
+                      final LanguageOption opt =
+                          AppLocalizations.languageOptions[index];
+                      final bool selected =
+                          ejector.locale.languageCode == opt.code;
+                      return ListTile(
+                        dense: true,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        tileColor: selected
+                            ? const Color(0xFF00E5FF).withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        leading: Text(
+                          opt.flag,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        title: Text(
+                          opt.nativeName,
+                          style: TextStyle(
+                            color: selected
+                                ? const Color(0xFF00E5FF)
+                                : Colors.white,
+                            fontWeight:
+                                selected ? FontWeight.w800 : FontWeight.w600,
+                          ),
+                        ),
+                        trailing: selected
+                            ? const Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFF64FFDA),
+                                size: 20,
+                              )
+                            : Text(
+                                opt.code.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Color(0xFF78909C),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                        onTap: () {
+                          ejector.changeLocale(opt.locale);
+                          Navigator.of(dialogContext).pop();
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Dialog xem trực tiếp Chính sách Bảo mật & Điều khoản (Privacy Policy & Terms) chuẩn AppGallery
+  void _showPrivacyPolicyDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final AppLocalizations l10n = AppLocalizations.of(dialogContext)!;
+        return Dialog(
+          backgroundColor: const Color(0xFF0C1A32),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 26),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: BorderSide(
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.verified_user_rounded,
+                      color: Color(0xFF64FFDA),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.translate('privacy_dialog_title'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF90A4AE),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  l10n.translate('privacy_updated'),
+                  style: const TextStyle(
+                    color: Color(0xFF80D8FF),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _buildPrivacySection(
+                          l10n.translate('privacy_dev_header'),
+                          l10n.translate('privacy_dev_body'),
+                        ),
+                        _buildPrivacySection(
+                          l10n.translate('privacy_ads_header'),
+                          l10n.translate('privacy_ads_body'),
+                        ),
+                        _buildPrivacySection(
+                          l10n.translate('privacy_audio_header'),
+                          l10n.translate('privacy_audio_body'),
+                        ),
+                        _buildPrivacySection(
+                          l10n.translate('privacy_disclaimer_header'),
+                          l10n.translate('privacy_disclaimer_body'),
+                        ),
+                        _buildPrivacySection(
+                          l10n.translate('privacy_rights_header'),
+                          l10n.translate('privacy_rights_body'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF80D8FF),
+                        side: BorderSide(
+                          color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                        ),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(
+                          const ClipboardData(
+                            text: HuaweiAdsConfig.developerEmail,
+                          ),
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              l10n.translate('email_copied_toast'),
+                            ),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: Text(l10n.translate('btn_copy_email')),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF00E5FF),
+                        foregroundColor: const Color(0xFF041428),
+                      ),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(
+                        l10n.translate('btn_close'),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPrivacySection(String title, String body) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF132546),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF64FFDA),
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            body,
+            style: const TextStyle(
+              color: Color(0xFFD6E4F0),
+              fontSize: 12.5,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bottom sheet hướng dẫn sử dụng 4 bước đạt hiệu quả đẩy nước cao nhất
   void _showUsageTipsSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -324,45 +617,41 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (BuildContext context) {
+      builder: (BuildContext sheetContext) {
+        final AppLocalizations l10n = AppLocalizations.of(sheetContext)!;
         return Padding(
           padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Row(
-                children: <Widget>[
-                  Icon(Icons.tips_and_updates_rounded, color: Color(0xFF00E5FF)),
-                  SizedBox(width: 10),
-                  Text(
-                    '4 Bước Đẩy Nước Sạch Tối Đa',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.tips_and_updates_rounded,
+                      color: Color(0xFF00E5FF),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _buildTipItem(
-                '1',
-                'Ngắt kết nối tai nghe Bluetooth / có dây để âm thanh phát trực tiếp ra loa ngoài.',
-              ),
-              _buildTipItem(
-                '2',
-                'Tăng âm lượng Media lên mức tối đa (100%) để màng loa tạo biên độ rung mạnh nhất.',
-              ),
-              _buildTipItem(
-                '3',
-                'Đặt úp màn hình điện thoại xuống bàn phẳng hoặc dốc hướng khe loa xuống dưới theo chiều trọng lực.',
-              ),
-              _buildTipItem(
-                '4',
-                'Chạy "Chuẩn 165Hz" trước, sau đó chạy thêm "Quét 100–200Hz" nếu loa vẫn còn hơi rè.',
-              ),
-            ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.translate('tips_sheet_title'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _buildTipItem('1', l10n.translate('tip_step_1')),
+                _buildTipItem('2', l10n.translate('tip_step_2')),
+                _buildTipItem('3', l10n.translate('tip_step_3')),
+                _buildTipItem('4', l10n.translate('tip_step_4')),
+              ],
+            ),
           ),
         );
       },
@@ -416,6 +705,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
     return Consumer<WaterEjectorProvider>(
       builder:
           (BuildContext context, WaterEjectorProvider ejector, Widget? child) {
@@ -425,60 +716,89 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             centerTitle: false,
-            titleSpacing: 18,
+            titleSpacing: 16,
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text(
-                  'Water Ejector',
+                Text(
+                  l10n.translate('app_title'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 19,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                   ),
                 ),
                 Text(
-                  'Speaker Cleaner • 165Hz Acoustic DSP',
+                  l10n.translate('app_subtitle'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: const Color(0xFF80D8FF).withValues(alpha: 0.85),
-                    fontSize: 11.5,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
             actions: <Widget>[
-              // Nút kích âm lượng loa lên 100% chỉ với 1 chạm
-              TextButton.icon(
+              // Nút kích âm lượng loa nhanh lên 100%
+              IconButton(
                 onPressed: ejector.boostVolumeToMax,
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF64FFDA),
-                  backgroundColor:
-                      const Color(0xFF00E5FF).withValues(alpha: 0.12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.volume_up_rounded,
+                  color: Color(0xFF64FFDA),
+                  size: 20,
                 ),
-                icon: const Icon(Icons.volume_up_rounded, size: 17),
-                label: Text(
-                  '${(ejector.mediaVolumePercent * 100).round()}%',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
+              ),
+              // Nút chọn ngôn ngữ (Language Selector - 9 ngôn ngữ)
+              InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () => _showLanguageSelectorDialog(ejector),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Icon(
+                        Icons.language_rounded,
+                        size: 15,
+                        color: Color(0xFF00E5FF),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        ejector.locale.languageCode.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               IconButton(
                 onPressed: _showUsageTipsSheet,
-                tooltip: 'Hướng dẫn sử dụng',
+                visualDensity: VisualDensity.compact,
+                tooltip: l10n.translate('tips_tooltip'),
                 icon: const Icon(
                   Icons.help_outline_rounded,
                   color: Color(0xFFB0BEC5),
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 6),
@@ -502,49 +822,42 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  // Banner nhắc nhở đặt úp điện thoại & trạng thái HMS Ads
-                  _buildTopGuidanceBanner(ejector),
+                  _buildTopGuidanceBanner(l10n, ejector),
                   const SizedBox(height: 10),
-
-                  // Cụm trực quan hóa sóng âm 165Hz & màng loa trung tâm
                   WaveVisualizer(
                     isEjecting: ejector.isEjecting,
                     isTestingSpeaker: ejector.isTestingSpeaker,
                     progress: ejector.progress,
                     frequencyHz: ejector.currentFrequencyHz,
                     formattedTime: ejector.formattedCountdown,
+                    startLabel: l10n.translate('center_start'),
+                    stopLabel: l10n.translate('center_stop'),
                     onTapCenterButton: ejector.toggleWaterEjector,
                   ),
-
                   const SizedBox(height: 8),
-
-                  // Thanh tiến trình (Progress Bar) + thông tin tần số thời gian thực
-                  _buildProgressAndTelemetryCard(ejector),
+                  _buildProgressAndTelemetryCard(l10n, ejector),
                   const SizedBox(height: 14),
-
-                  // Chọn chế độ tần số (165Hz Chuẩn / Quét 100-200Hz / Xung Mạnh) & Thời gian (30s / 1 phút)
-                  _buildModeAndDurationCard(ejector),
+                  _buildModeAndDurationCard(l10n, ejector),
                   const SizedBox(height: 14),
-
-                  // Nút hành động chính (Bắt đầu / Dừng chu trình đẩy nước)
-                  _buildPrimaryActionButton(ejector),
+                  _buildPrimaryActionButton(l10n, ejector),
                   const SizedBox(height: 16),
-
-                  // Khu vực Test Speaker (Bass / Treble / Beep) kiểm tra rè loa
-                  _buildSpeakerTestSection(ejector),
+                  _buildSpeakerTestSection(l10n, ejector),
+                  const SizedBox(height: 12),
+                  _buildFooterComplianceRow(l10n),
                 ],
               ),
             ),
           ),
-
-          // Đáy màn hình chính: Tích hợp Huawei Petal Banner Ad cố định gọn gàng
-          bottomNavigationBar: _buildBottomHuaweiBannerAd(),
+          bottomNavigationBar: _buildBottomHuaweiBannerAd(l10n),
         );
       },
     );
   }
 
-  Widget _buildTopGuidanceBanner(WaterEjectorProvider ejector) {
+  Widget _buildTopGuidanceBanner(
+    AppLocalizations l10n,
+    WaterEjectorProvider ejector,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -562,17 +875,18 @@ class _HomeScreenState extends State<HomeScreen> {
             size: 20,
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Mẹo: Bật âm lượng 100% và đặt úp khe loa hướng xuống dưới khi chạy.',
-              style: TextStyle(
+              l10n.translate('top_tip'),
+              style: const TextStyle(
                 color: Color(0xFFD6E4F0),
                 fontSize: 12.2,
                 height: 1.3,
               ),
             ),
           ),
-          if (ejector.completedCyclesCount > 0)
+          if (ejector.completedCyclesCount > 0) ...<Widget>[
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -580,7 +894,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'Đã chạy ${ejector.completedCyclesCount}x',
+                l10n.translate(
+                  'cycles_badge',
+                  <String, String>{
+                    'count': ejector.completedCyclesCount.toString(),
+                  },
+                ),
                 style: const TextStyle(
                   color: Color(0xFF64FFDA),
                   fontSize: 11,
@@ -588,13 +907,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildProgressAndTelemetryCard(WaterEjectorProvider ejector) {
+  Widget _buildProgressAndTelemetryCard(
+    AppLocalizations l10n,
+    WaterEjectorProvider ejector,
+  ) {
     final int percent = (ejector.progress * 100).round();
+    final String statusText = ejector.activeSpeakerTest != null
+        ? l10n.translate(
+            'status_testing',
+            <String, String>{
+              'test': l10n.translate(ejector.activeSpeakerTest!.labelKey),
+              'range': ejector.activeSpeakerTest!.frequencyRange,
+            },
+          )
+        : l10n.translate(ejector.statusStageKey);
+
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -611,10 +944,12 @@ class _HomeScreenState extends State<HomeScreen> {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  ejector.statusHeadline,
+                  statusText,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 13.2,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -657,7 +992,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildModeAndDurationCard(WaterEjectorProvider ejector) {
+  Widget _buildModeAndDurationCard(
+    AppLocalizations l10n,
+    WaterEjectorProvider ejector,
+  ) {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -668,9 +1006,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text(
-            'Chế độ sóng âm đẩy nước',
-            style: TextStyle(
+          Text(
+            l10n.translate('mode_section_title'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
               color: Color(0xFFB0C4DE),
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
@@ -692,7 +1032,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: 6,
                         vertical: 11,
                       ),
                       decoration: BoxDecoration(
@@ -710,7 +1050,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         children: <Widget>[
                           Text(
-                            mode.title,
+                            l10n.translate(mode.titleKey),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -718,13 +1058,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: isSelected
                                   ? Colors.white
                                   : const Color(0xFFCFD8DC),
-                              fontSize: 12,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            mode.subtitle,
+                            l10n.translate(mode.subtitleKey),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -732,7 +1072,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: isSelected
                                   ? const Color(0xFF80D8FF)
                                   : const Color(0xFF78909C),
-                              fontSize: 10.5,
+                              fontSize: 10,
                             ),
                           ),
                         ],
@@ -744,20 +1084,20 @@ class _HomeScreenState extends State<HomeScreen> {
             }).toList(),
           ),
           const SizedBox(height: 14),
-          const Row(
+          Row(
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.timer_outlined,
                 color: Color(0xFF80D8FF),
                 size: 18,
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Thời gian đếm ngược chu trình',
+                  l10n.translate('duration_section_title'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFFB0C4DE),
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
@@ -773,7 +1113,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildDurationChip(
                   ejector: ejector,
                   seconds: 30,
-                  label: '30 Giây',
+                  label: l10n.translate('duration_30s'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -781,7 +1121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildDurationChip(
                   ejector: ejector,
                   seconds: 60,
-                  label: '1 Phút',
+                  label: l10n.translate('duration_60s'),
                 ),
               ),
             ],
@@ -802,7 +1142,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: ejector.isEjecting ? null : () => ejector.selectDuration(seconds),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? const Color(0xFF00E5FF) : const Color(0xFF132546),
@@ -827,7 +1167,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPrimaryActionButton(WaterEjectorProvider ejector) {
+  Widget _buildPrimaryActionButton(
+    AppLocalizations l10n,
+    WaterEjectorProvider ejector,
+  ) {
     return SizedBox(
       height: 54,
       child: FilledButton.icon(
@@ -847,23 +1190,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ejector.isEjecting
               ? Icons.stop_circle_rounded
               : Icons.water_drop_rounded,
-          size: 24,
+          size: 23,
         ),
-        label: Text(
-          ejector.isEjecting
-              ? 'DỪNG ĐẨY NƯỚC (${ejector.formattedCountdown})'
-              : 'KÍCH HOẠT ĐẨY NƯỚC NGAY',
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
+        label: Flexible(
+          child: Text(
+            ejector.isEjecting
+                ? l10n.translate(
+                    'btn_stop_eject',
+                    <String, String>{'time': ejector.formattedCountdown},
+                  )
+                : l10n.translate('btn_start_eject'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSpeakerTestSection(WaterEjectorProvider ejector) {
+  Widget _buildSpeakerTestSection(
+    AppLocalizations l10n,
+    WaterEjectorProvider ejector,
+  ) {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -882,12 +1235,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Test Speaker • Kiểm tra loa còn rè không',
-                  style: TextStyle(
+                  l10n.translate('test_section_title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -899,7 +1254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     visualDensity: VisualDensity.compact,
                     foregroundColor: const Color(0xFFFF8A80),
                   ),
-                  child: const Text('Dừng test'),
+                  child: Text(l10n.translate('btn_stop_test')),
                 ),
             ],
           ),
@@ -949,18 +1304,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          type.label,
+                          l10n.translate(type.labelKey),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          type.description,
+                          l10n.translate(type.descriptionKey),
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -981,8 +1336,75 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Hàng nút xem trực tiếp Privacy Policy & Hướng dẫn làm sạch ngay trong App
+  Widget _buildFooterComplianceRow(AppLocalizations l10n) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFB0C4DE),
+              backgroundColor: const Color(0xFF0D1B35),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _showUsageTipsSheet,
+            icon: const Icon(
+              Icons.tips_and_updates_outlined,
+              size: 16,
+              color: Color(0xFF80D8FF),
+            ),
+            label: Text(
+              l10n.translate('usage_guide_btn'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF80D8FF),
+              backgroundColor: const Color(0xFF0D1B35),
+              side: BorderSide(
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.28),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: _showPrivacyPolicyDialog,
+            icon: const Icon(
+              Icons.verified_user_outlined,
+              size: 16,
+              color: Color(0xFF64FFDA),
+            ),
+            label: Text(
+              l10n.translate('privacy_policy_btn'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Widget Huawei Petal Banner Ad neo ở đáy màn hình chính
-  Widget _buildBottomHuaweiBannerAd() {
+  Widget _buildBottomHuaweiBannerAd(AppLocalizations l10n) {
     return SafeArea(
       top: false,
       child: Container(
@@ -1039,11 +1461,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Huawei Petal Banner Ad • ${HuaweiAdsConfig.bannerAdSlotId}',
+                        l10n.translate(
+                          'ad_banner_label',
+                          <String, String>{
+                            'slotId': HuaweiAdsConfig.bannerAdSlotId,
+                          },
+                        ),
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Color(0xFFE0E6ED),
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,

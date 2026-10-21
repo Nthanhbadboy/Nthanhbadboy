@@ -11,6 +11,8 @@ class WaveVisualizer extends StatefulWidget {
     required this.progress,
     required this.frequencyHz,
     required this.formattedTime,
+    required this.startLabel,
+    required this.stopLabel,
     required this.onTapCenterButton,
   });
 
@@ -19,6 +21,8 @@ class WaveVisualizer extends StatefulWidget {
   final double progress;
   final double frequencyHz;
   final String formattedTime;
+  final String startLabel;
+  final String stopLabel;
   final VoidCallback onTapCenterButton;
 
   @override
@@ -54,7 +58,6 @@ class _WaveVisualizerState extends State<WaveVisualizer>
         builder: (BuildContext context, Widget? child) {
           final double phase = _controller.value;
           final bool active = widget.isEjecting || widget.isTestingSpeaker;
-          // Hiệu ứng rung vật lý nhẹ của cụm màng loa khi đang phát tần số cao năng lượng
           final double membraneScale = widget.isEjecting
               ? 1.0 + 0.045 * math.sin(phase * 2.0 * math.pi * 6.0)
               : (widget.isTestingSpeaker
@@ -64,7 +67,6 @@ class _WaveVisualizerState extends State<WaveVisualizer>
           return Stack(
             alignment: Alignment.center,
             children: <Widget>[
-              // Lớp vẽ sóng âm sin đa tầng + vòng xung kích + hạt nước bắn ra khỏi màng loa
               Positioned.fill(
                 child: CustomPaint(
                   painter: _AcousticWaterPainter(
@@ -76,15 +78,14 @@ class _WaveVisualizerState extends State<WaveVisualizer>
                   ),
                 ),
               ),
-
-              // Nút màng loa trung tâm tương tác (Start / Stop Water Ejector)
               Transform.scale(
                 scale: membraneScale,
                 child: GestureDetector(
                   onTap: widget.onTapCenterButton,
                   child: Container(
-                    width: 156,
-                    height: 156,
+                    width: 160,
+                    height: 160,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
@@ -124,17 +125,19 @@ class _WaveVisualizerState extends State<WaveVisualizer>
                           widget.isEjecting
                               ? Icons.water_drop_rounded
                               : Icons.graphic_eq_rounded,
-                          size: 36,
+                          size: 34,
                           color: Colors.white,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 5),
                         Text(
                           widget.formattedTime,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 28,
+                            fontSize: 27,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
-                            letterSpacing: 1.2,
+                            letterSpacing: 1.0,
                             fontFeatures: <FontFeature>[
                               FontFeature.tabularFigures(),
                             ],
@@ -142,8 +145,9 @@ class _WaveVisualizerState extends State<WaveVisualizer>
                         ),
                         const SizedBox(height: 4),
                         Container(
+                          constraints: const BoxConstraints(maxWidth: 134),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
+                            horizontal: 8,
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
@@ -152,12 +156,15 @@ class _WaveVisualizerState extends State<WaveVisualizer>
                           ),
                           child: Text(
                             widget.isEjecting
-                                ? '${widget.frequencyHz.toStringAsFixed(0)} Hz • DỪNG'
-                                : 'BẮT ĐẦU ĐẨY NƯỚC',
+                                ? '${widget.frequencyHz.toStringAsFixed(0)} Hz • ${widget.stopLabel}'
+                                : widget.startLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              letterSpacing: 0.6,
+                              letterSpacing: 0.4,
                               color: widget.isEjecting
                                   ? const Color(0xFFA7FFEB)
                                   : const Color(0xFF80D8FF),
@@ -197,7 +204,6 @@ class _AcousticWaterPainter extends CustomPainter {
     final Offset center = Offset(size.width / 2, size.height / 2);
     final bool active = isEjecting || isTestingSpeaker;
 
-    // 1. Vẽ dải sóng âm ngang (Multi-harmonic Sine Wave Oscilloscope)
     const int waveCount = 3;
     final double baseAmplitude =
         isEjecting ? 34.0 : (isTestingSpeaker ? 22.0 : 8.0);
@@ -213,7 +219,6 @@ class _AcousticWaterPainter extends CustomPainter {
 
       for (double x = 0; x <= size.width; x += 4) {
         final double nx = x / size.width;
-        // Làm dịu biên 2 đầu để sóng hội tụ mạnh ở tâm màng loa
         final double window = math.sin(math.pi * nx);
         final double y = center.dy +
             math.sin(nx * math.pi * 2.0 * waveDensity - speedShift) *
@@ -236,11 +241,10 @@ class _AcousticWaterPainter extends CustomPainter {
       canvas.drawPath(path, wavePaint);
     }
 
-    // 2. Vẽ các vòng sóng xung kích đồng tâm lan tỏa khỏi màng loa
     final int ringCount = active ? 4 : 2;
     for (int i = 0; i < ringCount; i++) {
       final double t = (phase + i / ringCount) % 1.0;
-      final double radius = 78.0 + t * (active ? 68.0 : 34.0);
+      final double radius = 80.0 + t * (active ? 66.0 : 34.0);
       final double alpha = (1.0 - t) * (active ? 0.48 : 0.16);
 
       final Paint ringPaint = Paint()
@@ -251,14 +255,13 @@ class _AcousticWaterPainter extends CustomPainter {
       canvas.drawCircle(center, radius, ringPaint);
     }
 
-    // 3. Vẽ vòng cung tiến độ bao quanh cụm loa khi đang đẩy nước
     if (isEjecting) {
-      final Rect arcRect = Rect.fromCircle(center: center, radius: 92);
+      final Rect arcRect = Rect.fromCircle(center: center, radius: 94);
       final Paint trackPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4.5
         ..color = Colors.white.withValues(alpha: 0.10);
-      canvas.drawCircle(center, 92, trackPaint);
+      canvas.drawCircle(center, 94, trackPaint);
 
       final Paint progressPaint = Paint()
         ..style = PaintingStyle.stroke
@@ -280,14 +283,13 @@ class _AcousticWaterPainter extends CustomPainter {
         progressPaint,
       );
 
-      // 4. Hiệu ứng các giọt nước (Water Droplets) bị sóng 165Hz bắn văng ra ngoài
       const int dropletCount = 14;
       for (int d = 0; d < dropletCount; d++) {
         final double seed = d * 0.6180339887;
         final double localT = (phase * 1.6 + seed) % 1.0;
         final double angle =
             (d / dropletCount) * 2.0 * math.pi + math.sin(seed * 6.0) * 0.25;
-        final double dist = 80.0 + localT * 64.0;
+        final double dist = 82.0 + localT * 62.0;
         final Offset dropPos = Offset(
           center.dx + math.cos(angle) * dist,
           center.dy + math.sin(angle) * dist,

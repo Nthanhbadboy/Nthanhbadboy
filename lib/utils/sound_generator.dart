@@ -5,32 +5,32 @@ import 'dart:typed_data';
 enum EjectMode {
   /// Tần số chuẩn 165Hz: Cộng hưởng biên độ lớn đẩy các giọt nước lớn khỏi lưới loa
   standard165Hz(
-    title: 'Chuẩn 165Hz',
-    subtitle: 'Đẩy giọt nước lớn',
+    titleKey: 'mode_standard_title',
+    subtitleKey: 'mode_standard_sub',
     badgeFreq: '165 Hz',
   ),
 
   /// Quét dải tần 100Hz - 200Hz: Quét liên tục qua mọi điểm cộng hưởng cơ học của loa
   frequencySweep(
-    title: 'Quét 100–200Hz',
-    subtitle: 'Làm sạch toàn dải',
+    titleKey: 'mode_sweep_title',
+    subtitleKey: 'mode_sweep_sub',
     badgeFreq: '100–200 Hz',
   ),
 
   /// Xung áp suất 165Hz cường độ cao: Phá vỡ sức căng bề mặt của hạt sương nhỏ bám dính
   deepPulse(
-    title: 'Xung Mạnh',
-    subtitle: 'Giũ sạch hạt mịn',
+    titleKey: 'mode_pulse_title',
+    subtitleKey: 'mode_pulse_sub',
     badgeFreq: '165 Hz Pulse',
   );
 
-  final String title;
-  final String subtitle;
+  final String titleKey;
+  final String subtitleKey;
   final String badgeFreq;
 
   const EjectMode({
-    required this.title,
-    required this.subtitle,
+    required this.titleKey,
+    required this.subtitleKey,
     required this.badgeFreq,
   });
 }
@@ -38,38 +38,33 @@ enum EjectMode {
 /// Các bài kiểm tra âm thanh loa sau khi vệ sinh (Test Speaker Modes)
 enum SpeakerTestType {
   bass(
-    label: 'Test Bass',
+    labelKey: 'test_bass_label',
     frequencyRange: '65–110 Hz',
-    description: 'Kiểm tra rè màng trầm',
+    descriptionKey: 'test_bass_desc',
   ),
   treble(
-    label: 'Test Treble',
+    labelKey: 'test_treble_label',
     frequencyRange: '2.8–5.2 kHz',
-    description: 'Kiểm tra nghẹt âm cao',
+    descriptionKey: 'test_treble_desc',
   ),
   beep(
-    label: 'Test Beep',
+    labelKey: 'test_beep_label',
     frequencyRange: '440–1320 Hz',
-    description: 'Kiểm tra độ trong trẻo',
+    descriptionKey: 'test_beep_desc',
   );
 
-  final String label;
+  final String labelKey;
   final String frequencyRange;
-  final String description;
+  final String descriptionKey;
 
   const SpeakerTestType({
-    required this.label,
+    required this.labelKey,
     required this.frequencyRange,
-    required this.description,
+    required this.descriptionKey,
   });
 }
 
 /// Bộ tổng hợp tín hiệu số DSP tạo file âm thanh WAV (PCM 16-bit, 44.1kHz) trực tiếp trong bộ nhớ.
-///
-/// Ưu điểm vượt trội:
-/// - Độ chính xác tần số tuyệt đối (165.00Hz & quét pha liên tục 100Hz -> 200Hz).
-/// - Nối vòng lặp (loop) mượt mà tại điểm cắt không (zero-crossing), không phát tiếng nổ "bụp".
-/// - Hoạt động 100% offline trên mọi thiết bị Huawei / Android / Web mà không phụ thuộc codec ngoài.
 class SoundGenerator {
   SoundGenerator._();
 
@@ -125,13 +120,12 @@ class SoundGenerator {
 
   /// 1. Tạo sóng chuẩn 165Hz kết hợp hài bậc 3 nhẹ giúp tăng biên độ dao động màng loa
   static Uint8List _generateStandard165HzWav() {
-    const double durationSec = 4.0; // 4.0s * 165Hz = 660 chu kỳ nguyên chẵn
+    const double durationSec = 4.0;
     final int totalSamples = (sampleRate * durationSec).round();
     final Float64List samples = Float64List(totalSamples);
 
     for (int i = 0; i < totalSamples; i++) {
       final double t = i / sampleRate;
-      // Điều biến áp suất nhẹ 1.5Hz giúp đẩy giọt nước hiệu quả hơn sóng tĩnh đơn thuần
       final double pressureEnvelope =
           0.86 + 0.14 * math.sin(2.0 * math.pi * 1.5 * t);
       final double fundamental = math.sin(2.0 * math.pi * 165.0 * t);
@@ -172,10 +166,9 @@ class SoundGenerator {
 
     for (int i = 0; i < totalSamples; i++) {
       final double t = i / sampleRate;
-      final double burstPos = (t * 4.0) % 1.0; // 4 xung / giây (250ms/chu kỳ)
+      final double burstPos = (t * 4.0) % 1.0;
       double gate = 0.0;
       if (burstPos < 0.72) {
-        // Sườn lên/xuống mượt tránh tiếng lách tách nhưng giữ lực đẩy cơ học mạnh
         final double normalized = burstPos / 0.72;
         gate = math.sin(math.pi * normalized).clamp(0.0, 1.0);
         gate = math.pow(gate, 0.35).toDouble();
@@ -188,7 +181,7 @@ class SoundGenerator {
     return _encodePcm16MonoWav(samples, fadeMs: 10);
   }
 
-  /// 4. Bài kiểm tra Bass (65Hz -> 110Hz): Phát hiện nhanh hiện tượng loa trầm còn rè hoặc ù
+  /// 4. Bài kiểm tra Bass (65Hz -> 110Hz)
   static Uint8List _generateBassTestWav() {
     const double durationSec = 3.6;
     final int totalSamples = (sampleRate * durationSec).round();
@@ -213,7 +206,7 @@ class SoundGenerator {
     return _encodePcm16MonoWav(samples, fadeMs: 15);
   }
 
-  /// 5. Bài kiểm tra Treble (2.8kHz -> 5.2kHz): Kiểm tra độ sáng & độ thoáng của màng lưới loa
+  /// 5. Bài kiểm tra Treble (2.8kHz -> 5.2kHz)
   static Uint8List _generateTrebleTestWav() {
     const double durationSec = 3.6;
     final int totalSamples = (sampleRate * durationSec).round();
@@ -266,14 +259,12 @@ class SoundGenerator {
     return _encodePcm16MonoWav(samples, fadeMs: 10);
   }
 
-  /// Nén biên độ mềm (Soft Clipping) giữ năng lượng sóng cao mà không gây vỡ tiếng loa
   static double _softClip(double x) {
     if (x > 1.0) return 1.0;
     if (x < -1.0) return -1.0;
     return x - (x * x * x) / 6.0;
   }
 
-  /// Đóng gói mảng mẫu thực [-1.0, 1.0] thành định dạng chuẩn RIFF WAVE 16-bit Mono
   static Uint8List _encodePcm16MonoWav(
     Float64List samples, {
     int fadeMs = 10,
@@ -291,7 +282,6 @@ class SoundGenerator {
 
     final ByteData buffer = ByteData(totalFileSize);
 
-    // RIFF chunk descriptor
     buffer.setUint8(0, 0x52); // 'R'
     buffer.setUint8(1, 0x49); // 'I'
     buffer.setUint8(2, 0x46); // 'F'
@@ -302,20 +292,18 @@ class SoundGenerator {
     buffer.setUint8(10, 0x56); // 'V'
     buffer.setUint8(11, 0x45); // 'E'
 
-    // 'fmt ' sub-chunk
     buffer.setUint8(12, 0x66); // 'f'
     buffer.setUint8(13, 0x6D); // 'm'
     buffer.setUint8(14, 0x74); // 't'
     buffer.setUint8(15, 0x20); // ' '
-    buffer.setUint32(16, 16, Endian.little); // PCM header size
-    buffer.setUint16(20, 1, Endian.little); // AudioFormat = 1 (PCM)
+    buffer.setUint32(16, 16, Endian.little);
+    buffer.setUint16(20, 1, Endian.little);
     buffer.setUint16(22, numChannels, Endian.little);
     buffer.setUint32(24, sampleRate, Endian.little);
     buffer.setUint32(28, byteRate, Endian.little);
     buffer.setUint16(32, blockAlign, Endian.little);
     buffer.setUint16(34, bitsPerSample, Endian.little);
 
-    // 'data' sub-chunk
     buffer.setUint8(36, 0x64); // 'd'
     buffer.setUint8(37, 0x61); // 'a'
     buffer.setUint8(38, 0x74); // 't'
