@@ -149,7 +149,7 @@ jobs:
             : > "$apk_strings"
             while IFS= read -r entry; do
               case "$entry" in
-                *.dex|*.xml|*.arsc|*.so|*.json|*.txt|*.properties|*.bin)
+                *.dex|*.xml|*.arsc|*.so|*.json|*.txt|*.properties|*.html|*.js|*.css|*.bin)
                   unzip -p "$apk" "$entry" 2>/dev/null | strings >> "$apk_strings" || true
                   ;;
               esac
