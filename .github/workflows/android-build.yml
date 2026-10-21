@@ -100,11 +100,20 @@ jobs:
           gradle --no-daemon -p android-app clean
 
       - name: Build signed release APKs
+        shell: bash
         run: |
-          gradle --no-daemon --refresh-dependencies -p android-app \
+          set -o pipefail
+          set +e
+          gradle --no-daemon --refresh-dependencies --stacktrace --console=plain -p android-app \
             assembleHuaweiRelease \
             assembleAmazonRelease \
-            assembleSamsungRelease
+            assembleSamsungRelease 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
+          status=${PIPESTATUS[0]}
+          if [[ "$status" -ne 0 ]]; then
+            summary="$(grep -E 'FAILURE:|What went wrong:|Could not |Execution failed|error:|Caused by:' "$RUNNER_TEMP/gradle-build.log" | tail -n 20 | tr '\n' ' ' | cut -c1-900)"
+            echo "::error file=android-app/app/build.gradle,line=1,title=Gradle build failure::$summary"
+          fi
+          exit "$status"
 
       - name: Collect and verify signed APKs
         shell: bash
