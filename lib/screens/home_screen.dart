@@ -281,10 +281,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   'Slot ID: ${HuaweiAdsConfig.interstitialAdSlotId}\nQuảng cáo toàn màn hình tự động hiển thị sau khi hoàn tất chu trình đẩy nước trên thiết bị HMS.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFFB0C4DE),
                     fontSize: 13,
                     height: 1.45,
@@ -1009,11 +1009,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
+                    const Expanded(
                       child: Text(
                         'Huawei Petal Banner Ad • ${HuaweiAdsConfig.bannerAdSlotId}',
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Color(0xFFE0E6ED),
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
