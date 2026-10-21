@@ -46,10 +46,12 @@ See [`SIGNING.md`](SIGNING.md) for permanent release-keystore setup and GitHub A
 
 ### Privacy policy
 
-The store-safe release privacy policy is published from [`docs/privacy-policy.html`](docs/privacy-policy.html). After the Pages workflow is enabled, the public URLs are:
+The store-safe release privacy policy is available as a public GitHub page at [`docs/privacy-policy.md`](docs/privacy-policy.md):
 
-- Policy: `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html`
-- Privacy rights: `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html#privacy-rights`
+- Policy: `https://github.com/Nthanhbadboy/Nthanhbadboy/blob/arena/667974da-nthanhbadboy/docs/privacy-policy.md`
+- Privacy rights: use the same public policy URL and the **Privacy rights** section.
+
+GitHub Pages deployment is optional; if Pages is enabled later, the HTML copy can be served at `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html`.
 
 ### GitHub build
 
