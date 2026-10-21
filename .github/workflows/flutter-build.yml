@@ -5,6 +5,9 @@ on:
     branches:
       - arena/3028496c-nthanhbadboy
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
