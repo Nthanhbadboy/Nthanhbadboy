@@ -97,7 +97,7 @@ dependencies {
     // The free build does not expose products or start a checkout flow until
     // AppGallery products, AG Connect configuration, and receipt verification
     // are supplied.
-    huaweiImplementation "com.huawei.hms:iap:6.13.0.300"
+    huaweiImplementation "com.huawei.hms:iap:6.16.6.305"
 }
 
 // Keep the Android asset synchronized with the canonical game file. This makes
