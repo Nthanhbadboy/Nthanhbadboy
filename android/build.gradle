@@ -1,0 +1,63 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        // Kho lưu trữ Maven chính thức của Huawei Developer cho HMS Core & AGConnect
+        maven { url 'https://developer.huawei.com/repo/' }
+    }
+    dependencies {
+        // Plugin Huawei AppGallery Connect (hỗ trợ đọc agconnect-services.json khi phát hành)
+        classpath 'com.huawei.agconnect:agcp:1.9.1.301'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        // Bắt buộc khai báo để tải com.huawei.hms:ads-lite và các gói HMS Ads
+        maven { url 'https://developer.huawei.com/repo/' }
+    }
+}
+
+rootProject.buildDir = "../build"
+
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+
+// Tự động đồng bộ namespace & AndroidManifest cho các plugin HMS (như huawei_ads) trên AGP 8+/9+
+subprojects { subproject ->
+    afterEvaluate {
+        if (subproject.plugins.hasPlugin("com.android.library") ||
+            subproject.plugins.hasPlugin("com.android.application")) {
+            def androidExt = subproject.extensions.findByName("android")
+            if (androidExt != null) {
+                def manifestFile = subproject.file("src/main/AndroidManifest.xml")
+                if (manifestFile.exists()) {
+                    def manifestText = manifestFile.getText("UTF-8")
+                    def matcher = (manifestText =~ /package\s*=\s*"([^"]+)"/)
+                    if (matcher.find()) {
+                        def extractedPkg = matcher.group(1)
+                        if (androidExt.namespace == null || androidExt.namespace.isEmpty()) {
+                            androidExt.namespace = extractedPkg
+                        }
+                        def sanitized = manifestText.replaceFirst(/\s*package\s*=\s*"[^"]+"/, "")
+                        manifestFile.write(sanitized, "UTF-8")
+                    }
+                }
+                if (androidExt.namespace == null || androidExt.namespace.isEmpty()) {
+                    androidExt.namespace = subproject.group.toString()
+                }
+            }
+        }
+    }
+}
+
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

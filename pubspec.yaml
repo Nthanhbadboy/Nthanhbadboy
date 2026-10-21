@@ -1,0 +1,38 @@
+name: water_ejector
+description: "Water Ejector: Speaker Cleaner - Ứng dụng đẩy nước màng loa 165Hz & kiểm tra âm thanh tối ưu hóa cho Huawei AppGallery (tích hợp Huawei Petal Ads SDK)."
+publish_to: 'none'
+
+# Phiên bản phát hành (versionName: 1.0.0, versionCode: 1)
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Bộ icon giao diện chuẩn
+  cupertino_icons: ^1.0.8
+
+  # Huawei Petal Ads SDK chính thức cho hệ sinh thái HMS / AppGallery
+  huawei_ads: ^13.4.72+300
+
+  # Engine phát âm thanh tần số chuẩn PCM 16-bit độ trễ thấp (hỗ trợ BytesSource & AssetSource)
+  audioplayers: ^6.1.0
+
+  # Quản lý trạng thái (State Management) sạch sẽ, reactive cho chu trình đẩy nước & kiểm tra loa
+  provider: ^6.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Khai báo tài nguyên âm thanh & hình ảnh đi kèm ứng dụng
+  assets:
+    - assets/images/
+    - assets/audio/
