@@ -64,30 +64,31 @@ jobs:
           set -euo pipefail
           store_file="$GITHUB_WORKSPACE/android-app/release.keystore"
 
-          if [[ -n "${KEYSTORE_BASE64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
-            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$store_file"
-            echo 'mode=repository-secret' >> "$GITHUB_OUTPUT"
-            echo 'A repository release keystore was found and will be used.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            # This keeps CI from ever uploading an unsigned APK. It is a
-            # temporary CI key, not a production AppGallery/Amazon signing key.
-            KEYSTORE_PASSWORD='android'
-            KEY_ALIAS='physicsdraw'
-            KEY_PASSWORD='android'
-            keytool -genkeypair -v \
-              -keystore "$store_file" \
-              -storetype JKS \
-              -storepass "$KEYSTORE_PASSWORD" \
-              -keypass "$KEY_PASSWORD" \
-              -alias "$KEY_ALIAS" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Physics Draw CI, OU=Build, O=Nthanhbadboy, L=Haiphong, C=VN"
-            echo 'mode=temporary-ci-key' >> "$GITHUB_OUTPUT"
-            echo 'No repository keystore secrets were available; a temporary CI signing key was generated. This APK is signed but is not suitable as a production update key.' >> "$GITHUB_STEP_SUMMARY"
+          missing=()
+          [[ -n "${KEYSTORE_BASE64:-}" ]] || missing+=(ANDROID_KEYSTORE_BASE64)
+          [[ -n "${KEYSTORE_PASSWORD:-}" ]] || missing+=(ANDROID_KEYSTORE_PASSWORD)
+          [[ -n "${KEY_ALIAS:-}" ]] || missing+=(ANDROID_KEY_ALIAS)
+          [[ -n "${KEY_PASSWORD:-}" ]] || missing+=(ANDROID_KEY_PASSWORD)
+          if (( ${#missing[@]} > 0 )); then
+            printf 'A real production release keystore is required. Missing GitHub Actions secret(s): %s\n' "${missing[*]}" >&2
+            exit 1
           fi
 
+          if ! printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$store_file"; then
+            echo 'ANDROID_KEYSTORE_BASE64 is not valid base64.' >&2
+            exit 1
+          fi
+          if ! keytool -list -v \
+              -keystore "$store_file" \
+              -storepass "$KEYSTORE_PASSWORD" \
+              -alias "$KEY_ALIAS" \
+              >/dev/null 2>&1; then
+            echo 'The supplied production keystore, password, or alias could not be validated.' >&2
+            exit 1
+          fi
+
+          echo 'mode=repository-secret' >> "$GITHUB_OUTPUT"
+          echo 'A validated production release keystore was found and will be used; no temporary or unsigned APK will be produced.' >> "$GITHUB_STEP_SUMMARY"
           {
             echo "ANDROID_RELEASE_STORE_FILE=$store_file"
             echo "ANDROID_RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD"
@@ -128,14 +129,51 @@ jobs:
             test -n "$apk"
             "$apksigner" verify --verbose "$apk" >/dev/null
 
-            # Release guard: no merged dependency may add Google Play Billing
-            # or a known third-party payment SDK to any storefront APK.
-            if "$aapt2" dump permissions "$apk" | grep -Fq 'com.android.vending.BILLING'; then
+            audit="artifacts/${flavor}-apk-audit.txt"
+            permissions="$RUNNER_TEMP/${flavor}-permissions.txt"
+            "$aapt2" dump permissions "$apk" > "$permissions"
+            {
+              echo "APK: $apk"
+              echo "SHA-256: $(sha256sum "$apk" | cut -d' ' -f1)"
+              echo "--- merged permissions ---"
+              cat "$permissions"
+              echo "--- archive entries ---"
+              unzip -Z1 "$apk"
+              echo "--- payment/billing signatures ---"
+            } > "$audit"
+
+            # Inspect every text-bearing APK entry, not only classes.dex. This
+            # catches signatures hidden in secondary dex files, resources, the
+            # WebView asset, or a transitive native/library resource.
+            apk_strings="$RUNNER_TEMP/${flavor}-apk-strings.txt"
+            : > "$apk_strings"
+            while IFS= read -r entry; do
+              case "$entry" in
+                *.dex|*.xml|*.arsc|*.so|*.json|*.txt|*.properties|*.bin)
+                  unzip -p "$apk" "$entry" 2>/dev/null | strings >> "$apk_strings" || true
+                  ;;
+              esac
+            done < <(unzip -Z1 "$apk")
+
+            forbidden_pattern='com[./]android[./](vending|billing)|com[./]google[./]android[./](play[./]billing|billingclient)|com[./](stripe|paypal|braintree|adyen|razorpay)|BillingClient|GoogleBilling'
+            forbidden_matches="$(grep -Eio "$forbidden_pattern" "$apk_strings" | sort -u || true)"
+            if [[ -n "$forbidden_matches" ]]; then
+              printf '%s\n' "$forbidden_matches" >> "$audit"
+              echo "Forbidden third-party billing signature found in $apk" >&2
+              exit 1
+            fi
+            echo "none" >> "$audit"
+
+            if grep -Fq 'com.android.vending.BILLING' "$permissions"; then
               echo "Forbidden Google Play Billing permission found in $apk" >&2
               exit 1
             fi
-            if unzip -p "$apk" classes.dex | strings | grep -Eiq 'com/(android/billingclient|stripe|paypal)|BillingClient|GoogleBilling|PayPal'; then
-              echo "Forbidden third-party billing string found in $apk" >&2
+            if [[ "$flavor" == "huawei" ]] && ! grep -Fq 'com.huawei.hms.iap' "$apk_strings"; then
+              echo "Huawei APK is missing the official HMS Core IAP package" >&2
+              exit 1
+            fi
+            if [[ "$flavor" != "huawei" ]] && grep -Fq 'com.huawei.hms.iap' "$apk_strings"; then
+              echo "Non-Huawei APK contains the Huawei HMS Core IAP package" >&2
               exit 1
             fi
 
@@ -152,7 +190,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Remove temporary keystore
+      - name: Remove release keystore
         if: always()
         shell: bash
         run: rm -f android-app/release.keystore

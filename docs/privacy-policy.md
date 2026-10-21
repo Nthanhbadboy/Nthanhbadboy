@@ -16,13 +16,15 @@ You can remove this locally stored information by clearing the App’s storage o
 
 ## Ads and in-app purchases
 
-Ads and in-app purchases are disabled in the current release. The App does not process payments and does not create orders in this release. Any future release that enables advertising or in-app purchases will update this policy and use the applicable official store SDKs and disclosures.
+Ads and in-app purchases are disabled in the current release. The Huawei APK links the official HMS Core IAP SDK only for AppGallery compatibility; it does not query products, open checkout, process payments, create orders, or grant entitlements in this release. Any future release that enables paid features will update this policy and use the applicable official store disclosures and receipt verification.
 
 ## Third-party resources
 
 The game may request technical resources from third-party content delivery services, including Matter.js from cdnjs, Font Awesome from cdnjs, and fonts from Google Fonts. Those services may receive ordinary technical request information such as an IP address and browser/device request metadata when the resource is downloaded. The App does not send game progress or account data to those services.
 
-For Android builds, network access is used only for these game resources while monetization is disabled.
+The Huawei Android flavor also contains the official HMS Core IAP SDK from Huawei Software Technologies Co., Ltd. It is linked for AppGallery integration, but the current free release does not query products, open a checkout screen, or send a transaction. If paid features are enabled in a future release, the SDK may process transaction information to deliver Huawei payment services and this policy will be updated with the active data flow.
+
+For Android builds, network access is used only for these game resources and official Huawei services while monetization is disabled.
 
 ## Children’s privacy
 

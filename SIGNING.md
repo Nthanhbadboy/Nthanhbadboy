@@ -68,7 +68,7 @@ Workflow `.github/workflows/android-build.yml` sẽ:
 3. Chạy `apksigner verify`.
 4. Upload artifact `physics-draw-release-apks`.
 
-Nếu chưa có đủ secrets, CI chỉ dùng một key tạm để kiểm tra build. Bản đó **không được dùng để phát hành hoặc update trên store**.
+Nếu chưa có đủ secrets, CI sẽ dừng trước bước build release và không tạo hoặc upload APK Android nào. Workflow không sinh key tạm và không chấp nhận APK unsigned cho phát hành.
 
 ## 4. Trước khi upload store
 
