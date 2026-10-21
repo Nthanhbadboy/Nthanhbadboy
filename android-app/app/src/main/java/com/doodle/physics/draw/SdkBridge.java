@@ -10,30 +10,23 @@ import android.webkit.WebView;
 import org.json.JSONObject;
 
 /**
- * Small JSON bridge shared by all store variants.
+ * Small JSON bridge shared by the store variants.
  *
- * The HTML game sends messages such as:
- * {"module":"ads","action":"show_rewarded","adUnitId":"..."}
- * {"module":"iap","action":"purchase","productId":"..."}
- *
- * The default adapter is intentionally dependency-free so the free release
- * builds without any payment SDK or payment resource. Replace the disabled
- * adapter only with the official SDK for the selected storefront, real product
- * configuration, and server-side receipt verification before enabling paid
- * features. The browser game has no purchase fallback.
+ * The free release exposes only the provider-neutral ad callback contract.
+ * It has no store transaction or entitlement entry point. Store monetization
+ * can be added later with the official SDK for the selected storefront, real
+ * products, and server-side verification.
  */
 public final class SdkBridge {
     private static final String TAG = "PhysicsDrawSdk";
 
-    private final Activity activity;
     private final WebView webView;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final StoreAdapter storeAdapter;
 
-    public SdkBridge(Activity activity, WebView webView, String provider) {
-        this.activity = activity;
+    public SdkBridge(Activity ignoredActivity, WebView webView, String provider) {
         this.webView = webView;
-        this.storeAdapter = new DemoStoreAdapter(provider == null ? "unknown" : provider);
+        this.storeAdapter = new DisabledStoreAdapter(provider == null ? "unknown" : provider);
     }
 
     @JavascriptInterface
@@ -61,18 +54,10 @@ public final class SdkBridge {
                 if ("show_banner".equals(action)) {
                     storeAdapter.showBanner(adUnitId);
                 } else if ("show_interstitial".equals(action)) {
-                    storeAdapter.showInterstitial(adUnitId, () -> dispatchInterstitialClosed());
+                    storeAdapter.showInterstitial(adUnitId, this::dispatchInterstitialClosed);
                 } else if ("show_rewarded".equals(action)) {
                     storeAdapter.showRewarded(adUnitId, () -> dispatchRewardedComplete(true));
                 }
-                return;
-            }
-
-            if ("iap".equals(module) && "purchase".equals(action)) {
-                String productId = message.optString("productId", "");
-                storeAdapter.purchase(productId,
-                        () -> dispatchPurchaseResult(productId, true),
-                        () -> dispatchPurchaseResult(productId, false));
                 return;
             }
 
@@ -88,11 +73,6 @@ public final class SdkBridge {
 
     private void dispatchRewardedComplete(boolean success) {
         evaluateJavascript("window.HMSGameCallbacks && window.HMSGameCallbacks.onRewardedComplete && window.HMSGameCallbacks.onRewardedComplete(" + success + ");");
-    }
-
-    private void dispatchPurchaseResult(String productId, boolean success) {
-        String quotedProductId = JSONObject.quote(productId == null ? "" : productId);
-        evaluateJavascript("window.HMSGameCallbacks && window.HMSGameCallbacks.onPurchaseResult && window.HMSGameCallbacks.onPurchaseResult(" + quotedProductId + "," + success + ");");
     }
 
     private void evaluateJavascript(final String script) {
@@ -113,19 +93,17 @@ public final class SdkBridge {
         void showBanner(String adUnitId);
         void showInterstitial(String adUnitId, Runnable onClosed);
         void showRewarded(String adUnitId, Runnable onRewarded);
-        void purchase(String productId, Runnable onSuccess, Runnable onFailure);
         void destroy();
     }
 
     /**
-     * Build-safe fallback. It keeps the wrapper testable until the selected
-     * store's official SDK is installed and this adapter is replaced.
+     * Dependency-free adapter used while all monetization is disabled.
      */
-    private static final class DemoStoreAdapter implements StoreAdapter {
+    private static final class DisabledStoreAdapter implements StoreAdapter {
         private final String provider;
         private final Handler handler = new Handler(Looper.getMainLooper());
 
-        DemoStoreAdapter(String provider) {
+        DisabledStoreAdapter(String provider) {
             this.provider = provider;
         }
 
@@ -136,25 +114,19 @@ public final class SdkBridge {
 
         @Override
         public void showBanner(String adUnitId) {
-            Log.d(TAG, "Banner requested by " + provider + ": " + adUnitId);
+            Log.d(TAG, "Banner request ignored while monetization is disabled: " + adUnitId);
         }
 
         @Override
         public void showInterstitial(String adUnitId, Runnable onClosed) {
-            Log.d(TAG, "Interstitial requested by " + provider + ": " + adUnitId);
+            Log.d(TAG, "Interstitial request ignored while monetization is disabled: " + adUnitId);
             handler.postDelayed(onClosed, 350L);
         }
 
         @Override
         public void showRewarded(String adUnitId, Runnable onRewarded) {
-            Log.d(TAG, "Rewarded ad requested by " + provider + ": " + adUnitId);
+            Log.d(TAG, "Rewarded request ignored while monetization is disabled: " + adUnitId);
             handler.postDelayed(onRewarded, 350L);
-        }
-
-        @Override
-        public void purchase(String productId, Runnable onSuccess, Runnable onFailure) {
-            Log.w(TAG, "IAP is disabled until the official " + provider + " IAP adapter and receipt verification are configured: " + productId);
-            handler.postDelayed(onFailure, 350L);
         }
 
         @Override

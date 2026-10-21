@@ -547,8 +547,7 @@
       const BASE_W = 400;
       const BASE_H = 650;
       const BALL_RADIUS = 13;
-      // Store-safe release mode: monetization stays disabled until real Ads/IAP
-      // SDKs and verified product configuration are added per storefront.
+      // Store-safe release mode: monetization stays disabled in this free release.
       const MONETIZATION_ENABLED = false;
       const NATIVE_PROVIDER = (window.SDKBridge && typeof window.SDKBridge.getProvider === 'function')
         ? window.SDKBridge.getProvider()
@@ -746,7 +745,6 @@
         bannerAdUnitId: AD_UNITS.banner,
         interstitialAdUnitId: AD_UNITS.interstitial,
         rewardedAdUnitId: AD_UNITS.rewarded,
-        iapEnabled: false
       };
 
       function postToNative(message) {
@@ -781,34 +779,14 @@
         return false;
       }
 
-      function callNativePurchase(sku, callback) {
-        if (!MONETIZATION_ENABLED || NATIVE_PROVIDER !== 'huawei') {
-          if (typeof callback === 'function') callback(false, sku);
-          return true;
-        }
-        try {
-          if (window.HuaweiIAP && typeof window.HuaweiIAP.purchase === 'function') {
-            window.HuaweiIAP.purchase(sku, callback); return true;
-          }
-          if (postToNative({ module: 'iap', action: 'purchase', productId: sku })) {
-            return true;
-          }
-        } catch (error) { console.warn('HMS IAP hook error', error); }
-        return false;
-      }
-
       // These names are intentionally global: native HMS WebViews can call them.
       window.HMSGameConfig = HMS_CONFIG;
       window.HMSGameCallbacks = {
         onRewardedComplete: (success = true) => finishNativeAd('rewarded', success),
-        onInterstitialClosed: () => finishNativeAd('interstitial', true),
-        // Reserved for the official Huawei IAP adapter. This release does not
-        // expose purchase UI or grant entitlements from a WebView callback.
-        onPurchaseResult: () => {}
+        onInterstitialClosed: () => finishNativeAd('interstitial', true)
       };
       window.onHMSRewardedComplete = window.HMSGameCallbacks.onRewardedComplete;
       window.onHMSInterstitialClosed = window.HMSGameCallbacks.onInterstitialClosed;
-      window.onHMSPurchaseResult = window.HMSGameCallbacks.onPurchaseResult;
 
       function setupBanner() {
         const container = $('#hms-banner-container');

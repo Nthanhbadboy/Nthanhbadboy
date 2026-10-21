@@ -18,9 +18,9 @@ The game includes:
 - Responsive notebook UI with level picker, result modal, and provider-neutral ad hooks kept disabled in the free build.
 - English, Vietnamese, Simplified Chinese, Spanish, and Russian translations.
 - Local progress persistence for unlocked levels, stars, hints, language, and sound.
-- Huawei WebView hooks for official Ads/IAP integration. Native hosts can provide `SDKBridge`, `HMSCoreWebViewBridge`, `HuaweiAds`, or `HuaweiIAP`, or invoke the global callbacks exposed by `HMSGameCallbacks`.
+- Huawei WebView hooks for the official Ads integration. Native hosts can provide `SDKBridge`, `HMSCoreWebViewBridge`, or `HuaweiAds`, or invoke the global callbacks exposed by `HMSGameCallbacks`.
 
-The free release ships no IAP product IDs, purchase UI, payment SDK, or browser purchase fallback. Huawei IAP callbacks remain disabled until official HMS products and server-side receipt verification are configured.
+The free release ships no store product IDs, transaction UI, payment SDK, or browser transaction fallback. Store billing can be added in a later storefront-specific build only after official products and server-side receipt verification are configured.
 
 ## Android Studio wrapper
 
