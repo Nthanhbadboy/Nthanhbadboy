@@ -16,15 +16,11 @@ import org.json.JSONObject;
  * {"module":"ads","action":"show_rewarded","adUnitId":"..."}
  * {"module":"iap","action":"purchase","productId":"..."}
  *
- * The default adapter is intentionally dependency-free so the sample project
- * builds in a clean Android Studio install. Replace DemoStoreAdapter with the
- * real provider adapter for the selected flavor before publishing:
- *
- * - huawei: Huawei Ads Kit + Huawei IAP Kit
- * - amazon: Amazon Ads/APS + the store billing implementation
- * - samsung: Google Mobile Ads or the mediation provider approved for Samsung
- *
- * The browser mock remains available when the page is opened outside Android.
+ * The default adapter is intentionally dependency-free so the free release
+ * builds without any payment SDK or payment resource. Replace the disabled
+ * adapter only with the official SDK for the selected storefront, real product
+ * configuration, and server-side receipt verification before enabling paid
+ * features. The browser game has no purchase fallback.
  */
 public final class SdkBridge {
     private static final String TAG = "PhysicsDrawSdk";
@@ -157,7 +153,7 @@ public final class SdkBridge {
 
         @Override
         public void purchase(String productId, Runnable onSuccess, Runnable onFailure) {
-            Log.w(TAG, "IAP is disabled until a real " + provider + " billing adapter is installed: " + productId);
+            Log.w(TAG, "IAP is disabled until the official " + provider + " IAP adapter and receipt verification are configured: " + productId);
             handler.postDelayed(onFailure, 350L);
         }
 

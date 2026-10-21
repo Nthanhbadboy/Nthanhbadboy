@@ -15,12 +15,12 @@ The game includes:
 - Store-safe free mode: Ads and IAP UI are disabled until real provider SDKs and verified products are configured.
 - 100 deterministic, extensible level definitions in `index.html`.
 - Matter.js line bodies, gravity, cup sensor collision detection, hazards, win/fail states, and a line-length budget.
-- Responsive notebook UI with level picker, shop, result, and browser ad-simulation modals.
+- Responsive notebook UI with level picker, result modal, and provider-neutral ad hooks kept disabled in the free build.
 - English, Vietnamese, Simplified Chinese, Spanish, and Russian translations.
-- Local progress persistence for unlocked levels, stars, hints, language, sound, and ad removal.
-- Huawei Ads and IAP WebView hooks with browser-safe mocks. Native hosts can provide `SDKBridge`, `HMSCoreWebViewBridge`, `HuaweiAds`, or `HuaweiIAP`, or invoke the global callbacks exposed by `HMSGameCallbacks`.
+- Local progress persistence for unlocked levels, stars, hints, language, and sound.
+- Huawei WebView hooks for official Ads/IAP integration. Native hosts can provide `SDKBridge`, `HMSCoreWebViewBridge`, `HuaweiAds`, or `HuaweiIAP`, or invoke the global callbacks exposed by `HMSGameCallbacks`.
 
-The test ad unit IDs and IAP SKU IDs are grouped near the top of the application script in `HMS_CONFIG` and `IAP_SKUS`.
+The free release ships no IAP product IDs, purchase UI, payment SDK, or browser purchase fallback. Huawei IAP callbacks remain disabled until official HMS products and server-side receipt verification are configured.
 
 ## Android Studio wrapper
 
@@ -40,7 +40,7 @@ gradle -p android-app assembleAmazonDebug
 gradle -p android-app assembleSamsungDebug
 ```
 
-Import `android-app` into Android Studio and use **Build > Generate Signed Bundle / APK** for a signed release. The source is dependency-free on purpose: `SdkBridge.java` contains the provider-neutral JSON contract and a build-safe `DemoStoreAdapter`. Replace that adapter with the official Huawei Ads/IAP, Amazon Ads/APS, or approved Samsung/AdMob implementation before publishing; do not ship the demo callback adapter as a monetized production integration. The selected flavor is exposed through `BuildConfig.STORE_PROVIDER`; the page selects Huawei test units, Google Android test units for Samsung/AdMob, or Amazon placeholders through `AD_UNITS_BY_PROVIDER`. Monetization is currently disabled in the release-safe build; connect the official native SDK and verified products before enabling it.
+Import `android-app` into Android Studio and use **Build > Generate Signed Bundle / APK** for a signed release. The source is dependency-free on purpose: `SdkBridge.java` contains the provider-neutral JSON contract and a build-safe adapter that rejects IAP while monetization is disabled. There are no third-party payment SDKs or payment resources in the free build. Replace the disabled adapter only with the official Huawei IAP implementation, approved provider SDKs, real product IDs, and server-side receipt verification before enabling paid features. The selected flavor is exposed through `BuildConfig.STORE_PROVIDER`; the page selects Huawei test ad units, Google Android test units for Samsung/AdMob, or Amazon placeholders through `AD_UNITS_BY_PROVIDER`. Monetization is currently disabled in the release-safe build.
 
 See [`SIGNING.md`](SIGNING.md) for permanent release-keystore setup and GitHub Actions secrets.
 

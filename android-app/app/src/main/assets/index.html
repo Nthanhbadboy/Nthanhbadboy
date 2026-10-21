@@ -361,25 +361,6 @@
     .tile-lock { display: block; color: #7d8796; font-size: 10px; margin-top: -1px; min-height: 9px; }
     .level-caption { margin: 2px 0 10px; color: var(--muted); font-size: 10px; text-align: center; }
 
-    .shop-list { display: grid; gap: 9px; }
-    .shop-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 9px;
-      padding: 10px;
-      border: 2px solid #c7cdd6;
-      border-radius: 11px;
-      background: #fff;
-    }
-    .shop-item h3 { margin: 0 0 3px; font-size: 12px; }
-    .shop-item p { margin: 0; color: var(--muted); font: 9px Arial, sans-serif; }
-    .price-btn { min-width: 59px; padding-inline: 7px; font-size: 11px; }
-    .shop-footnote { margin: 12px 0 0; color: #8b94a4; text-align: center; font: italic 9px Arial, sans-serif; }
-    .owned-mark { display: none; color: var(--green-dark); font-size: 10px; font-weight: 700; }
-    .owned .owned-mark { display: inline; }
-    .owned .price-btn { display: none; }
-
     .result-panel { width: min(100%, 355px); text-align: center; padding: 20px; }
     .result-icon { color: var(--yellow); font-size: 43px; filter: drop-shadow(2px 2px 0 var(--ink)); }
     .result-panel.failed .result-icon { color: #e86d64; }
@@ -446,7 +427,7 @@
       .brand-subtitle { font-size: 7px; }
       .top-actions { gap: 3px; }
       .top-actions .doodle-btn { min-height: 32px; }
-      .top-actions .hint-label, .top-actions .shop-label { display: none; }
+      .top-actions .hint-label { display: none; }
       .doodle-btn { padding-inline: 7px; }
       .canvas-card { border-radius: 12px; box-shadow: 5px 5px 0 rgba(39,50,68,.92); }
       .control-row { gap: 5px; }
@@ -488,7 +469,6 @@
           <option value="ru">RU</option>
         </select>
         <button id="btn-hint" class="doodle-btn compact-btn yellow-btn" type="button" data-i18n-title="hintTitle" aria-label="Hints"><i class="fa-solid fa-lightbulb"></i><span id="hint-count">5</span></button>
-        <button id="btn-shop" class="doodle-btn compact-btn green-btn" type="button" data-i18n-title="shop" aria-label="Shop"><i class="fa-solid fa-store"></i><span class="shop-label" data-i18n="shopShort">Shop</span></button>
       </div>
     </header>
 
@@ -531,27 +511,6 @@
       <div class="panel-header"><h2 id="levels-title" class="panel-title" data-i18n="selectLevel">Select level</h2><button class="close-btn" type="button" data-close="modal-levels" aria-label="Close">&times;</button></div>
       <p id="levels-caption" class="level-caption">1 / 100 unlocked</p>
       <div id="levels-grid" class="levels-grid"></div>
-    </div>
-  </div>
-
-  <div id="modal-shop" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shop-title">
-    <div class="panel">
-      <div class="panel-header"><h2 id="shop-title" class="panel-title"><i class="fa-solid fa-store"></i> <span data-i18n="shopTitle">Shop & upgrades</span></h2><button class="close-btn" type="button" data-close="modal-shop" aria-label="Close">&times;</button></div>
-      <div class="shop-list">
-        <div id="shop-noads" class="shop-item">
-          <div><h3 data-i18n="noAds">Remove banner & interstitial ads</h3><p>SKU: remove_ads_sku_01</p></div>
-          <span class="owned-mark" data-i18n="owned">Owned</span><button id="iap-noads" class="doodle-btn price-btn green-btn" type="button">$0.99</button>
-        </div>
-        <div class="shop-item">
-          <div><h3 data-i18n="hintPack">+10 hint pack</h3><p>SKU: hints_pack_sku_02</p></div>
-          <button id="iap-hints" class="doodle-btn price-btn yellow-btn" type="button">$0.49</button>
-        </div>
-        <div class="shop-item">
-          <div><h3 data-i18n="unlockAll">Unlock all 100 levels</h3><p>SKU: unlock_all_sku_03</p></div>
-          <button id="iap-vip" class="doodle-btn price-btn blue-btn" type="button">$1.99</button>
-        </div>
-      </div>
-      <p class="shop-footnote" data-i18n="poweredBy">Powered by Huawei In-App Purchases (HMS Core IAP Kit)</p>
     </div>
   </div>
 
@@ -619,11 +578,6 @@
         }
       };
       const AD_UNITS = AD_UNITS_BY_PROVIDER[NATIVE_PROVIDER] || AD_UNITS_BY_PROVIDER.browser;
-      const IAP_SKUS = {
-        noAds: 'remove_ads_sku_01',
-        hints: 'hints_pack_sku_02',
-        vip: 'unlock_all_sku_03'
-      };
       const WORLD_NAMES = ['Notebook 1', 'Blue Margin', 'Doodle Lab', 'Tilted Pages', 'Final Exam'];
 
       const $ = (selector) => document.querySelector(selector);
@@ -638,37 +592,35 @@
       const I18N = {
         en: {
           appTitle: 'One-Line Physics Draw', subtitle: 'Doodle notebook puzzles', home: 'Home', soundOn: 'Sound on', soundOff: 'Sound off',
-          hintTitle: 'Use a hint', shop: 'Open shop', shopShort: 'Shop', drawPrompt: 'Draw one line to guide the ball into the cup',
+          hintTitle: 'Use a hint', drawPrompt: 'Draw one line to guide the ball into the cup',
           clear: 'Clear', play: 'PLAY', playing: 'RUNNING', reset: 'RESET', skip: 'Skip', adLabel: 'HMS AD',
-          selectLevel: 'Select level', levelsUnlocked: '{unlocked} / 100 unlocked', shopTitle: 'Shop & upgrades', noAds: 'Remove banner & interstitial ads',
-          hintPack: '+10 hint pack', unlockAll: 'Unlock all 100 levels', owned: 'Owned', poweredBy: 'Powered by Huawei In-App Purchases (HMS Core IAP Kit)',
+          selectLevel: 'Select level', levelsUnlocked: '{unlocked} / 100 unlocked',
           nextLevel: 'Next level', replay: 'Replay', tryAgain: 'Try again', levelCleared: 'Level cleared!', levelFailed: 'Not quite!',
           greatPhysics: 'Great physics precision!', ballMissed: 'The ball missed the cup. Try a different angle.', levelComplete: 'You finished every page!',
           level: 'LEVEL', ink: 'INK', adLoading: 'Loading…', finishAd: 'Finish ad', simulatingAd: 'Simulating HMS video ad',
           rewardedAd: 'HMS rewarded ad', interstitialAd: 'HMS interstitial ad', hintShown: 'Hint sketched in green!', noHints: 'No hints left — watch an ad for 3 more.',
           rewarded: '+3 hints added!', lineTooShort: 'Draw a little longer line first.', lineReady: 'Line ready — press PLAY!', drawingLimit: 'Ink limit reached.',
-          homeToast: 'Back to level 1', locked: 'Locked', skipConfirm: 'Watch a short ad to skip this level?', purchaseMock: 'Browser demo purchase complete!',
-          noAdsBought: 'Ads removed for this device.', hintsBought: '10 hints added!', vipBought: 'All 100 levels unlocked!', bannerMock: 'Banner slot · testw6ac28233s',
-          levelName: 'Level {n}', notebook: 'Notebook {n}', adUnit: 'Unit ID', shopUnavailable: 'Purchase unavailable in this browser.',
+          homeToast: 'Back to level 1', locked: 'Locked', skipConfirm: 'Watch a short ad to skip this level?', bannerMock: 'Banner slot · testw6ac28233s',
+          levelName: 'Level {n}', notebook: 'Notebook {n}', adUnit: 'Unit ID',
           levelOne: 'Warm-up', levelTwo: 'The Little Ramp', levelThree: 'Pocket Bridge', levelFour: 'Almost There', levelFive: 'Crosswind',
           levelSix: 'A Gentle Drop', levelSeven: 'Mind the Gap', levelEight: 'Two Steps', levelNine: 'Lucky Loop', levelTen: 'The Long Way'
         },
         vi: {
           appTitle: 'Vẽ Vật Lý Một Nét', subtitle: 'Câu đố vở kẻ ô', home: 'Trang chủ', soundOn: 'Bật âm thanh', soundOff: 'Tắt âm thanh',
-          hintTitle: 'Dùng gợi ý', shop: 'Mở cửa hàng', shopShort: 'Shop', drawPrompt: 'Vẽ một nét đưa bóng vào chiếc cốc', clear: 'Xóa', play: 'CHƠI', playing: 'ĐANG CHẠY', reset: 'CHƠI LẠI', skip: 'Bỏ qua', adLabel: 'QUẢNG CÁO HMS',
-          selectLevel: 'Chọn màn', levelsUnlocked: 'Đã mở {unlocked} / 100', shopTitle: 'Cửa hàng & nâng cấp', noAds: 'Xóa quảng cáo banner & xen kẽ', hintPack: '+10 gợi ý', unlockAll: 'Mở khóa cả 100 màn', owned: 'Đã mua', poweredBy: 'Hỗ trợ bởi Huawei IAP (HMS Core)',
+          hintTitle: 'Dùng gợi ý', drawPrompt: 'Vẽ một nét đưa bóng vào chiếc cốc', clear: 'Xóa', play: 'CHƠI', playing: 'ĐANG CHẠY', reset: 'CHƠI LẠI', skip: 'Bỏ qua', adLabel: 'QUẢNG CÁO HMS',
+          selectLevel: 'Chọn màn', levelsUnlocked: 'Đã mở {unlocked} / 100',
           nextLevel: 'Màn tiếp', replay: 'Chơi lại', tryAgain: 'Thử lại', levelCleared: 'Qua màn!', levelFailed: 'Chưa được!', greatPhysics: 'Điều khiển vật lý tuyệt vời!', ballMissed: 'Bóng chưa vào cốc. Hãy thử góc khác.', levelComplete: 'Bạn đã hoàn thành mọi trang!',
-          level: 'MÀN', ink: 'MỰC', adLoading: 'Đang tải…', finishAd: 'Xem xong', simulatingAd: 'Mô phỏng quảng cáo video HMS', rewardedAd: 'Quảng cáo nhận thưởng HMS', interstitialAd: 'Quảng cáo xen kẽ HMS', hintShown: 'Đã phác gợi ý màu xanh!', noHints: 'Hết gợi ý — xem quảng cáo để nhận thêm 3.', rewarded: 'Đã thêm 3 gợi ý!', lineTooShort: 'Hãy vẽ một đường dài hơn.', lineReady: 'Đường đã sẵn sàng — nhấn CHƠI!', drawingLimit: 'Đã hết mực.', homeToast: 'Về màn 1', locked: 'Đã khóa', skipConfirm: 'Xem quảng cáo ngắn để bỏ qua màn này?', purchaseMock: 'Mua thử nghiệm trên trình duyệt thành công!', noAdsBought: 'Đã tắt quảng cáo trên thiết bị này.', hintsBought: 'Đã thêm 10 gợi ý!', vipBought: 'Đã mở khóa 100 màn!', bannerMock: 'Ô quảng cáo · testw6ac28233s', levelName: 'Màn {n}', notebook: 'Vở {n}', adUnit: 'Mã quảng cáo', shopUnavailable: 'Mua hàng không khả dụng trên trình duyệt.',
+          level: 'MÀN', ink: 'MỰC', adLoading: 'Đang tải…', finishAd: 'Xem xong', simulatingAd: 'Mô phỏng quảng cáo video HMS', rewardedAd: 'Quảng cáo nhận thưởng HMS', interstitialAd: 'Quảng cáo xen kẽ HMS', hintShown: 'Đã phác gợi ý màu xanh!', noHints: 'Hết gợi ý — xem quảng cáo để nhận thêm 3.', rewarded: 'Đã thêm 3 gợi ý!', lineTooShort: 'Hãy vẽ một đường dài hơn.', lineReady: 'Đường đã sẵn sàng — nhấn CHƠI!', drawingLimit: 'Đã hết mực.', homeToast: 'Về màn 1', locked: 'Đã khóa', skipConfirm: 'Xem quảng cáo ngắn để bỏ qua màn này?', bannerMock: 'Ô quảng cáo · testw6ac28233s', levelName: 'Màn {n}', notebook: 'Vở {n}', adUnit: 'Mã quảng cáo',
           levelOne: 'Khởi động', levelTwo: 'Dốc nhỏ', levelThree: 'Cầu túi', levelFour: 'Gần tới', levelFive: 'Gió ngang', levelSix: 'Rơi nhẹ', levelSeven: 'Cẩn thận khoảng trống', levelEight: 'Hai bậc', levelNine: 'Vòng may mắn', levelTen: 'Đường dài'
         },
         zh: {
-          appTitle: '一笔物理画', subtitle: '涂鸦笔记本谜题', home: '主页', soundOn: '开启声音', soundOff: '关闭声音', hintTitle: '使用提示', shop: '打开商店', shopShort: '商店', drawPrompt: '画一条线，把小球引进杯子', clear: '清除', play: '开始', playing: '运行中', reset: '重试', skip: '跳过', adLabel: 'HMS 广告', selectLevel: '选择关卡', levelsUnlocked: '已解锁 {unlocked} / 100', shopTitle: '商店与升级', noAds: '移除横幅和插屏广告', hintPack: '+10 个提示', unlockAll: '解锁全部 100 关', owned: '已拥有', poweredBy: '由华为应用内支付（HMS Core）提供', nextLevel: '下一关', replay: '重玩', tryAgain: '再试一次', levelCleared: '关卡完成！', levelFailed: '还差一点！', greatPhysics: '物理控制非常棒！', ballMissed: '小球没有进杯子，换个角度试试。', levelComplete: '你完成了所有页面！', level: '关卡', ink: '墨水', adLoading: '加载中…', finishAd: '完成广告', simulatingAd: '正在模拟 HMS 视频广告', rewardedAd: 'HMS 激励广告', interstitialAd: 'HMS 插屏广告', hintShown: '绿色线条显示了提示！', noHints: '没有提示了——看广告获得 3 个。', rewarded: '已获得 3 个提示！', lineTooShort: '先画一条长一点的线。', lineReady: '线已准备好——点击开始！', drawingLimit: '墨水用完了。', homeToast: '返回第 1 关', locked: '未解锁', skipConfirm: '观看短广告来跳过这一关？', purchaseMock: '浏览器演示购买成功！', noAdsBought: '已为此设备移除广告。', hintsBought: '已获得 10 个提示！', vipBought: '已解锁全部 100 关！', bannerMock: '横幅广告位 · testw6ac28233s', levelName: '第 {n} 关', notebook: '笔记本 {n}', adUnit: '广告单元', shopUnavailable: '浏览器中无法购买。', levelOne: '热身', levelTwo: '小斜坡', levelThree: '口袋桥', levelFour: '就快到了', levelFive: '侧风', levelSix: '轻轻下落', levelSeven: '注意缺口', levelEight: '两级台阶', levelNine: '幸运环', levelTen: '漫长旅途'
+          appTitle: '一笔物理画', subtitle: '涂鸦笔记本谜题', home: '主页', soundOn: '开启声音', soundOff: '关闭声音', hintTitle: '使用提示', drawPrompt: '画一条线，把小球引进杯子', clear: '清除', play: '开始', playing: '运行中', reset: '重试', skip: '跳过', adLabel: 'HMS 广告', selectLevel: '选择关卡', levelsUnlocked: '已解锁 {unlocked} / 100', nextLevel: '下一关', replay: '重玩', tryAgain: '再试一次', levelCleared: '关卡完成！', levelFailed: '还差一点！', greatPhysics: '物理控制非常棒！', ballMissed: '小球没有进杯子，换个角度试试。', levelComplete: '你完成了所有页面！', level: '关卡', ink: '墨水', adLoading: '加载中…', finishAd: '完成广告', simulatingAd: '正在模拟 HMS 视频广告', rewardedAd: 'HMS 激励广告', interstitialAd: 'HMS 插屏广告', hintShown: '绿色线条显示了提示！', noHints: '没有提示了——看广告获得 3 个。', rewarded: '已获得 3 个提示！', lineTooShort: '先画一条长一点的线。', lineReady: '线已准备好——点击开始！', drawingLimit: '墨水用完了。', homeToast: '返回第 1 关', locked: '未解锁', skipConfirm: '观看短广告来跳过这一关？', bannerMock: '横幅广告位 · testw6ac28233s', levelName: '第 {n} 关', notebook: '笔记本 {n}', adUnit: '广告单元', levelOne: '热身', levelTwo: '小斜坡', levelThree: '口袋桥', levelFour: '就快到了', levelFive: '侧风', levelSix: '轻轻下落', levelSeven: '注意缺口', levelEight: '两级台阶', levelNine: '幸运环', levelTen: '漫长旅途'
         },
         es: {
-          appTitle: 'Dibujo Físico de Una Línea', subtitle: 'Puzles de cuaderno', home: 'Inicio', soundOn: 'Sonido activado', soundOff: 'Sonido desactivado', hintTitle: 'Usar pista', shop: 'Abrir tienda', shopShort: 'Tienda', drawPrompt: 'Dibuja una línea para llevar la bola a la taza', clear: 'Limpiar', play: 'JUGAR', playing: 'EN MARCHA', reset: 'REPETIR', skip: 'Saltar', adLabel: 'ANUNCIO HMS', selectLevel: 'Elegir nivel', levelsUnlocked: '{unlocked} / 100 desbloqueados', shopTitle: 'Tienda y mejoras', noAds: 'Quitar anuncios de banner e intersticiales', hintPack: '+10 pistas', unlockAll: 'Desbloquear los 100 niveles', owned: 'Comprado', poweredBy: 'Con tecnología de compras Huawei (HMS Core)', nextLevel: 'Siguiente nivel', replay: 'Repetir', tryAgain: 'Intentar de nuevo', levelCleared: '¡Nivel superado!', levelFailed: '¡Casi!', greatPhysics: '¡Gran precisión física!', ballMissed: 'La bola no llegó a la taza. Prueba otro ángulo.', levelComplete: '¡Has terminado todas las páginas!', level: 'NIVEL', ink: 'TINTA', adLoading: 'Cargando…', finishAd: 'Terminar anuncio', simulatingAd: 'Simulando vídeo de HMS', rewardedAd: 'Anuncio recompensado HMS', interstitialAd: 'Anuncio intersticial HMS', hintShown: '¡Pista dibujada en verde!', noHints: 'No quedan pistas; mira un anuncio para obtener 3.', rewarded: '¡Has recibido 3 pistas!', lineTooShort: 'Dibuja primero una línea un poco más larga.', lineReady: 'Línea lista: ¡pulsa JUGAR!', drawingLimit: 'Límite de tinta alcanzado.', homeToast: 'Volviendo al nivel 1', locked: 'Bloqueado', skipConfirm: '¿Ver un anuncio corto para saltar este nivel?', purchaseMock: '¡Compra de demostración completada!', noAdsBought: 'Anuncios eliminados en este dispositivo.', hintsBought: '¡10 pistas añadidas!', vipBought: '¡Los 100 niveles están desbloqueados!', bannerMock: 'Espacio de banner · testw6ac28233s', levelName: 'Nivel {n}', notebook: 'Cuaderno {n}', adUnit: 'ID de unidad', shopUnavailable: 'Las compras no están disponibles en este navegador.', levelOne: 'Calentamiento', levelTwo: 'La pequeña rampa', levelThree: 'Puente de bolsillo', levelFour: 'Casi', levelFive: 'Viento lateral', levelSix: 'Caída suave', levelSeven: 'Cuidado con el hueco', levelEight: 'Dos pasos', levelNine: 'Bucle de suerte', levelTen: 'El camino largo'
+          appTitle: 'Dibujo Físico de Una Línea', subtitle: 'Puzles de cuaderno', home: 'Inicio', soundOn: 'Sonido activado', soundOff: 'Sonido desactivado', hintTitle: 'Usar pista', drawPrompt: 'Dibuja una línea para llevar la bola a la taza', clear: 'Limpiar', play: 'JUGAR', playing: 'EN MARCHA', reset: 'REPETIR', skip: 'Saltar', adLabel: 'ANUNCIO HMS', selectLevel: 'Elegir nivel', levelsUnlocked: '{unlocked} / 100 desbloqueados', nextLevel: 'Siguiente nivel', replay: 'Repetir', tryAgain: 'Intentar de nuevo', levelCleared: '¡Nivel superado!', levelFailed: '¡Casi!', greatPhysics: '¡Gran precisión física!', ballMissed: 'La bola no llegó a la taza. Prueba otro ángulo.', levelComplete: '¡Has terminado todas las páginas!', level: 'NIVEL', ink: 'TINTA', adLoading: 'Cargando…', finishAd: 'Terminar anuncio', simulatingAd: 'Simulando vídeo de HMS', rewardedAd: 'Anuncio recompensado HMS', interstitialAd: 'Anuncio intersticial HMS', hintShown: '¡Pista dibujada en verde!', noHints: 'No quedan pistas; mira un anuncio para obtener 3.', rewarded: '¡Has recibido 3 pistas!', lineTooShort: 'Dibuja primero una línea un poco más larga.', lineReady: 'Línea lista: ¡pulsa JUGAR!', drawingLimit: 'Límite de tinta alcanzado.', homeToast: 'Volviendo al nivel 1', locked: 'Bloqueado', skipConfirm: '¿Ver un anuncio corto para saltar este nivel?', bannerMock: 'Espacio de banner · testw6ac28233s', levelName: 'Nivel {n}', notebook: 'Cuaderno {n}', adUnit: 'ID de unidad', levelOne: 'Calentamiento', levelTwo: 'La pequeña rampa', levelThree: 'Puente de bolsillo', levelFour: 'Casi', levelFive: 'Viento lateral', levelSix: 'Caída suave', levelSeven: 'Cuidado con el hueco', levelEight: 'Dos pasos', levelNine: 'Bucle de suerte', levelTen: 'El camino largo'
         },
         ru: {
-          appTitle: 'Физика в одну линию', subtitle: 'Головоломки в тетради', home: 'Домой', soundOn: 'Звук включён', soundOff: 'Звук выключен', hintTitle: 'Использовать подсказку', shop: 'Открыть магазин', shopShort: 'Магазин', drawPrompt: 'Нарисуйте линию и направьте шарик в чашку', clear: 'Очистить', play: 'ИГРАТЬ', playing: 'ЗАПУСК', reset: 'ЗАНОВО', skip: 'Пропустить', adLabel: 'РЕКЛАМА HMS', selectLevel: 'Выбор уровня', levelsUnlocked: 'Открыто: {unlocked} / 100', shopTitle: 'Магазин и улучшения', noAds: 'Убрать баннерную и полноэкранную рекламу', hintPack: '+10 подсказок', unlockAll: 'Открыть все 100 уровней', owned: 'Куплено', poweredBy: 'Покупки Huawei IAP (HMS Core)', nextLevel: 'Следующий уровень', replay: 'Заново', tryAgain: 'Ещё раз', levelCleared: 'Уровень пройден!', levelFailed: 'Почти получилось!', greatPhysics: 'Отличная точность!', ballMissed: 'Шарик не попал в чашку. Попробуйте другой угол.', levelComplete: 'Вы прошли все страницы!', level: 'УРОВЕНЬ', ink: 'ЧЕРНИЛА', adLoading: 'Загрузка…', finishAd: 'Завершить рекламу', simulatingAd: 'Имитация видео HMS', rewardedAd: 'Реклама с наградой HMS', interstitialAd: 'Полноэкранная реклама HMS', hintShown: 'Подсказка отмечена зелёным!', noHints: 'Подсказок нет — посмотрите рекламу и получите 3.', rewarded: 'Добавлено 3 подсказки!', lineTooShort: 'Сначала нарисуйте линию подлиннее.', lineReady: 'Линия готова — нажмите ИГРАТЬ!', drawingLimit: 'Чернила закончились.', homeToast: 'Возврат на уровень 1', locked: 'Закрыто', skipConfirm: 'Посмотреть короткую рекламу и пропустить уровень?', purchaseMock: 'Демонстрационная покупка завершена!', noAdsBought: 'Реклама отключена на этом устройстве.', hintsBought: 'Добавлено 10 подсказок!', vipBought: 'Все 100 уровней открыты!', bannerMock: 'Баннер · testw6ac28233s', levelName: 'Уровень {n}', notebook: 'Тетрадь {n}', adUnit: 'ID блока', shopUnavailable: 'Покупки недоступны в браузере.', levelOne: 'Разминка', levelTwo: 'Маленький скат', levelThree: 'Карманный мост', levelFour: 'Почти у цели', levelFive: 'Боковой ветер', levelSix: 'Мягкое падение', levelSeven: 'Осторожно, пробел', levelEight: 'Две ступени', levelNine: 'Удачная петля', levelTen: 'Долгий путь'
+          appTitle: 'Физика в одну линию', subtitle: 'Головоломки в тетради', home: 'Домой', soundOn: 'Звук включён', soundOff: 'Звук выключен', hintTitle: 'Использовать подсказку', drawPrompt: 'Нарисуйте линию и направьте шарик в чашку', clear: 'Очистить', play: 'ИГРАТЬ', playing: 'ЗАПУСК', reset: 'ЗАНОВО', skip: 'Пропустить', adLabel: 'РЕКЛАМА HMS', selectLevel: 'Выбор уровня', levelsUnlocked: 'Открыто: {unlocked} / 100', nextLevel: 'Следующий уровень', replay: 'Заново', tryAgain: 'Ещё раз', levelCleared: 'Уровень пройден!', levelFailed: 'Почти получилось!', greatPhysics: 'Отличная точность!', ballMissed: 'Шарик не попал в чашку. Попробуйте другой угол.', levelComplete: 'Вы прошли все страницы!', level: 'УРОВЕНЬ', ink: 'ЧЕРНИЛА', adLoading: 'Загрузка…', finishAd: 'Завершить рекламу', simulatingAd: 'Имитация видео HMS', rewardedAd: 'Реклама с наградой HMS', interstitialAd: 'Полноэкранная реклама HMS', hintShown: 'Подсказка отмечена зелёным!', noHints: 'Подсказок нет — посмотрите рекламу и получите 3.', rewarded: 'Добавлено 3 подсказки!', lineTooShort: 'Сначала нарисуйте линию подлиннее.', lineReady: 'Линия готова — нажмите ИГРАТЬ!', drawingLimit: 'Чернила закончились.', homeToast: 'Возврат на уровень 1', locked: 'Закрыто', skipConfirm: 'Посмотреть короткую рекламу и пропустить уровень?', bannerMock: 'Баннер · testw6ac28233s', levelName: 'Уровень {n}', notebook: 'Тетрадь {n}', adUnit: 'ID блока', levelOne: 'Разминка', levelTwo: 'Маленький скат', levelThree: 'Карманный мост', levelFour: 'Почти у цели', levelFive: 'Боковой ветер', levelSix: 'Мягкое падение', levelSeven: 'Осторожно, пробел', levelEight: 'Две ступени', levelNine: 'Удачная петля', levelTen: 'Долгий путь'
         }
       };
 
@@ -680,7 +632,7 @@
       }
 
       function safeLoad() {
-        const fallback = { level: 1, unlocked: 1, hints: 5, sound: true, lang: 'en', removeAds: false, completed: {}, hintsUsed: 0 };
+        const fallback = { level: 1, unlocked: 1, hints: 5, sound: true, lang: 'en', completed: {}, hintsUsed: 0 };
         try {
           const saved = JSON.parse(localStorage.getItem('oneLinePhysicsDrawState') || 'null');
           const merged = { ...fallback, ...(saved && typeof saved === 'object' ? saved : {}) };
@@ -718,7 +670,6 @@
       let adTimer = null;
       let adDone = false;
       let pendingAdCallback = null;
-      let pendingPurchaseCallback = null;
       let audioContext = null;
       let particles = [];
 
@@ -795,7 +746,7 @@
         bannerAdUnitId: AD_UNITS.banner,
         interstitialAdUnitId: AD_UNITS.interstitial,
         rewardedAdUnitId: AD_UNITS.rewarded,
-        iapSkus: IAP_SKUS
+        iapEnabled: false
       };
 
       function postToNative(message) {
@@ -831,12 +782,16 @@
       }
 
       function callNativePurchase(sku, callback) {
+        if (!MONETIZATION_ENABLED || NATIVE_PROVIDER !== 'huawei') {
+          if (typeof callback === 'function') callback(false, sku);
+          return true;
+        }
         try {
           if (window.HuaweiIAP && typeof window.HuaweiIAP.purchase === 'function') {
             window.HuaweiIAP.purchase(sku, callback); return true;
           }
           if (postToNative({ module: 'iap', action: 'purchase', productId: sku })) {
-            pendingPurchaseCallback = callback; return true;
+            return true;
           }
         } catch (error) { console.warn('HMS IAP hook error', error); }
         return false;
@@ -847,7 +802,9 @@
       window.HMSGameCallbacks = {
         onRewardedComplete: (success = true) => finishNativeAd('rewarded', success),
         onInterstitialClosed: () => finishNativeAd('interstitial', true),
-        onPurchaseResult: (sku, success = true) => finishNativePurchase(sku, success)
+        // Reserved for the official Huawei IAP adapter. This release does not
+        // expose purchase UI or grant entitlements from a WebView callback.
+        onPurchaseResult: () => {}
       };
       window.onHMSRewardedComplete = window.HMSGameCallbacks.onRewardedComplete;
       window.onHMSInterstitialClosed = window.HMSGameCallbacks.onInterstitialClosed;
@@ -855,7 +812,7 @@
 
       function setupBanner() {
         const container = $('#hms-banner-container');
-        if (!MONETIZATION_ENABLED || state.removeAds) { container.style.display = 'none'; return; }
+        if (!MONETIZATION_ENABLED) { container.style.display = 'none'; return; }
         const nativeBanner = postToNative({ module: 'ads', action: 'show_banner', adUnitId: AD_UNITS.banner, containerId: 'hms-banner-container' });
         if (!nativeBanner) $('#banner-text').textContent = t('bannerMock');
       }
@@ -894,31 +851,9 @@
 
       function showAd(type, callback) {
         if (!MONETIZATION_ENABLED) { callback(false, type); return; }
-        if (type !== 'rewarded' && state.removeAds) { callback(true, type); return; }
         if (!callNativeAd(type, callback)) openMockAd(type, callback);
       }
 
-      function finishNativePurchase(sku, success) {
-        if (typeof pendingPurchaseCallback === 'function') {
-          const callback = pendingPurchaseCallback; pendingPurchaseCallback = null; callback(Boolean(success), sku);
-        }
-      }
-
-      function grantPurchase(sku) {
-        if (sku === IAP_SKUS.noAds) { state.removeAds = true; setupBanner(); showToast(t('noAdsBought')); }
-        if (sku === IAP_SKUS.hints) { state.hints += 10; showToast(t('hintsBought')); }
-        if (sku === IAP_SKUS.vip) { state.unlocked = 100; showToast(t('vipBought')); }
-        saveState(); updateUI(); renderLevels();
-      }
-
-      function purchase(sku) {
-        if (!MONETIZATION_ENABLED) { showToast(t('shopUnavailable')); return; }
-        const completed = (success = true) => { if (success) grantPurchase(sku); };
-        if (!callNativePurchase(sku, completed)) {
-          // Browser fallback is intentionally unreachable in store-safe mode.
-          window.setTimeout(() => { grantPurchase(sku); showToast(t('purchaseMock')); }, 550);
-        }
-      }
 
       // ---------------------------------------------------------------------
       // Matter.js world and drawing interaction.
@@ -1077,7 +1012,7 @@
 
       function loadLevel(id) {
         const nextId = clamp(Number(id) || 1, 1, 100);
-        if (nextId > state.unlocked && !state.removeAds) { showToast(`${t('locked')} · ${t('levelsUnlocked', { unlocked: state.unlocked })}`); return; }
+        if (nextId > state.unlocked) { showToast(`${t('locked')} · ${t('levelsUnlocked', { unlocked: state.unlocked })}`); return; }
         currentLevel = LEVELS[nextId - 1];
         state.level = nextId;
         saveState();
@@ -1355,10 +1290,8 @@
         $('#play-label').textContent = phase === 'running' ? t('playing') : (phase === 'ready' ? t('play') : t('reset'));
         $('#play-icon').className = phase === 'running' ? 'fa-solid fa-stop' : (phase === 'ready' ? 'fa-solid fa-play' : 'fa-solid fa-rotate-right');
         $('#draw-prompt').classList.toggle('hidden', phase !== 'ready');
-        $('#shop-noads').classList.toggle('owned', state.removeAds);
-        $('#btn-shop').style.display = MONETIZATION_ENABLED ? '' : 'none';
         $('#btn-skip').style.display = MONETIZATION_ENABLED ? '' : 'none';
-        $('#hms-banner-container').style.display = MONETIZATION_ENABLED && !state.removeAds ? 'flex' : 'none';
+        $('#hms-banner-container').style.display = MONETIZATION_ENABLED ? 'flex' : 'none';
       }
 
       function applyTranslations() {
@@ -1377,10 +1310,10 @@
       function renderLevels() {
         const grid = $('#levels-grid');
         if (!grid || !currentLevel) return;
-        $('#levels-caption').textContent = t('levelsUnlocked', { unlocked: state.removeAds ? 100 : state.unlocked });
+        $('#levels-caption').textContent = t('levelsUnlocked', { unlocked: state.unlocked });
         grid.innerHTML = '';
         LEVELS.forEach((level) => {
-          const unlocked = state.removeAds || level.id <= state.unlocked;
+          const unlocked = level.id <= state.unlocked;
           const stars = Number(state.completed[level.id] || 0);
           const button = document.createElement('button');
           button.type = 'button'; button.className = `level-tile ${level.id === currentLevel.id ? 'current' : ''} ${stars ? 'complete' : ''}`;
@@ -1422,7 +1355,6 @@
 
       $('#btn-home').addEventListener('click', () => { loadLevel(1); showToast(t('homeToast')); });
       $('#btn-levels').addEventListener('click', () => { renderLevels(); openModal('modal-levels'); });
-      $('#btn-shop').addEventListener('click', () => openModal('modal-shop'));
       $('#btn-hint').addEventListener('click', showHint);
       $('#btn-sound').addEventListener('click', () => { state.sound = !state.sound; saveState(); updateUI(); if (state.sound) playTone(600, .08); });
       $('#lang-select').addEventListener('change', (event) => { state.lang = event.target.value; saveState(); applyTranslations(); });
@@ -1440,9 +1372,6 @@
         clearInterval(adTimer); closeModal('modal-ad-sim');
         if (callback) callback(true, $('#ad-kind').textContent.includes('rewarded') ? 'rewarded' : 'interstitial');
       });
-      $('#iap-noads').addEventListener('click', () => purchase(IAP_SKUS.noAds));
-      $('#iap-hints').addEventListener('click', () => purchase(IAP_SKUS.hints));
-      $('#iap-vip').addEventListener('click', () => purchase(IAP_SKUS.vip));
       $$('[data-close]').forEach((button) => button.addEventListener('click', () => closeModal(button.dataset.close)));
       $$('.modal').forEach((modal) => modal.addEventListener('pointerdown', (event) => { if (event.target === modal && modal.id !== 'modal-ad-sim') closeModal(modal.id); }));
       document.addEventListener('keydown', (event) => { if (event.key === 'Escape') $$('.modal:not(.hidden)').forEach((modal) => closeModal(modal.id)); });
