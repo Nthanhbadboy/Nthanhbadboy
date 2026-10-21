@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:huawei_ads/huawei_ads.dart';
@@ -6,26 +5,10 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/water_ejector_provider.dart';
+import '../utils/huawei_ads_config.dart';
 import '../utils/sound_generator.dart';
+import '../widgets/huawei_bottom_banner_ad.dart';
 import '../widgets/wave_visualizer.dart';
-
-/// Cấu hình Ad Slot ID cho Huawei Petal Ads (HMS Ads Kit).
-///
-/// LƯU Ý KHI PHÁT HÀNH LÊN HUAWEI APPGALLERY:
-/// - Các ID dưới đây là Test Ad Slot ID chính thức từ Huawei Developer Documentation.
-/// - Trước khi upload bản chính thức lên AppGallery Connect, hãy thay bằng
-///   Slot ID thật tạo trong Huawei Petal Publisher Center.
-class HuaweiAdsConfig {
-  HuaweiAdsConfig._();
-
-  static const String bannerAdSlotId = 'testw6vs28auh3';
-  static const String interstitialAdSlotId = 'testb4znbuh3n2';
-
-  static const String developerEmail = 'alphaplus.thanh82@gmail.com';
-
-  static bool get isAndroidPlatform =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,40 +19,37 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   InterstitialAd? _interstitialAd;
-  late final BannerViewController _bannerController;
-  bool _isBannerLoaded = false;
   bool _isInterstitialReady = false;
+  bool _privacyDialogShown = false;
 
   @override
   void initState() {
     super.initState();
 
-    // 1. Khởi tạo Controller lắng nghe sự kiện cho Huawei Banner Ad ở đáy màn hình
-    _bannerController = BannerViewController(
-      listener: (AdEvent event, {int? errorCode}) {
-        debugPrint('Huawei Banner Ad event: ${event.name} (code: $errorCode)');
-        if (!mounted) return;
-        if (event == AdEvent.loaded) {
-          setState(() => _isBannerLoaded = true);
-        } else if (event == AdEvent.failed) {
-          setState(() => _isBannerLoaded = false);
-        }
-      },
-    );
-
-    // 2. Tải trước (Preload) Huawei Interstitial Ad để sẵn sàng hiển thị khi đẩy nước xong
-    _loadInterstitialAd();
-
-    // 3. Lắng nghe sự kiện hoàn tất chu trình đẩy nước từ WaterEjectorProvider
+    // Kiểm tra trạng thái đồng ý Chính sách Bảo mật ngay khung hình đầu tiên:
+    // - Nếu chưa đồng ý (is_privacy_accepted == false): Hiện Dialog bắt buộc trước, TUYỆT ĐỐI chưa gọi Ads/OAID.
+    // - Nếu đã đồng ý (is_privacy_accepted == true): Tải trước Huawei Interstitial Ad (e8du1bx9pa).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<WaterEjectorProvider>().onCycleCompleted =
-          _onWaterEjectCycleCompleted;
+      final WaterEjectorProvider ejector = context.read<WaterEjectorProvider>();
+      ejector.onCycleCompleted = _onWaterEjectCycleCompleted;
+
+      if (!ejector.isPrivacyAccepted) {
+        if (!_privacyDialogShown) {
+          _privacyDialogShown = true;
+          _showPrivacyPolicyDialog(isFirstLaunch: true);
+        }
+      } else {
+        _loadInterstitialAd();
+      }
     });
   }
 
-  /// Khởi tạo & tải trước Huawei Interstitial Ad (Quảng cáo toàn màn hình)
-  Future<void> _loadInterstitialAd() async {
+  /// Khởi tạo & tải trước Huawei Interstitial Ad chính thức (e8du1bx9pa -> dự phòng y20zf3cylg)
+  Future<void> _loadInterstitialAd({bool useBackupSlot = false}) async {
+    if (!mounted) return;
+    if (!context.read<WaterEjectorProvider>().isPrivacyAccepted) return;
+
     if (!HuaweiAdsConfig.isAndroidPlatform) {
       if (mounted) {
         setState(() => _isInterstitialReady = true);
@@ -77,14 +57,19 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final String activeSlotId = useBackupSlot
+        ? HuaweiAdsConfig.backupInterstitialAdSlotId
+        : HuaweiAdsConfig.interstitialAdSlotId;
+
     try {
+      await HuaweiAdsConfig.ensureSdkInitialized();
       await _interstitialAd?.destroy();
       final InterstitialAd interstitial = InterstitialAd(
-        adSlotId: HuaweiAdsConfig.interstitialAdSlotId,
+        adSlotId: activeSlotId,
         adParam: AdParam(),
         listener: (AdEvent event, {int? errorCode}) {
           debugPrint(
-            'Huawei Interstitial Ad event: ${event.name} (code: $errorCode)',
+            'Huawei Interstitial Ad ($activeSlotId) event: ${event.name} (code: $errorCode)',
           );
           if (!mounted) return;
           if (event == AdEvent.loaded) {
@@ -95,6 +80,9 @@ class _HomeScreenState extends State<HomeScreen> {
             _showCleanSuccessDialog();
           } else if (event == AdEvent.failed) {
             setState(() => _isInterstitialReady = false);
+            if (!useBackupSlot) {
+              _loadInterstitialAd(useBackupSlot: true);
+            }
           }
         },
       );
@@ -435,145 +423,250 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Dialog xem trực tiếp Chính sách Bảo mật & Điều khoản (Privacy Policy & Terms) chuẩn AppGallery
-  void _showPrivacyPolicyDialog() {
+  /// Dialog xem Chính sách Bảo mật & Chấp thuận lần đầu (First-Launch Privacy Consent) chuẩn AppGallery
+  void _showPrivacyPolicyDialog({bool isFirstLaunch = false}) {
     showDialog<void>(
       context: context,
+      barrierDismissible: !isFirstLaunch,
+      barrierColor: Colors.black.withValues(alpha: isFirstLaunch ? 0.88 : 0.72),
       builder: (BuildContext dialogContext) {
-        final AppLocalizations l10n = AppLocalizations.of(dialogContext)!;
-        return Dialog(
-          backgroundColor: const Color(0xFF0C1A32),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 26),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: BorderSide(
-              color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        'assets/icons/icon_114x114.png',
-                        width: 30,
-                        height: 30,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        l10n.translate('privacy_dialog_title'),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Color(0xFF90A4AE),
-                      ),
-                    ),
-                  ],
+        return Consumer<WaterEjectorProvider>(
+          builder: (
+            BuildContext consumerCtx,
+            WaterEjectorProvider ejector,
+            Widget? child,
+          ) {
+            final AppLocalizations l10n = AppLocalizations.of(consumerCtx)!;
+            return PopScope(
+              canPop: !isFirstLaunch,
+              child: Dialog(
+                backgroundColor: const Color(0xFF0C1A32),
+                insetPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 26,
                 ),
-                Text(
-                  l10n.translate('privacy_updated'),
-                  style: const TextStyle(
-                    color: Color(0xFF80D8FF),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  side: BorderSide(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.35),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        _buildPrivacySection(
-                          l10n.translate('privacy_dev_header'),
-                          l10n.translate('privacy_dev_body'),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(
+                              'assets/icons/icon_114x114.png',
+                              width: 30,
+                              height: 30,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              l10n.translate('privacy_dialog_title'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () => _showLanguageSelectorDialog(ejector),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00E5FF)
+                                    .withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                ejector.locale.languageCode.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Color(0xFF00E5FF),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (!isFirstLaunch)
+                            IconButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: Color(0xFF90A4AE),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.translate('privacy_updated'),
+                        style: const TextStyle(
+                          color: Color(0xFF80D8FF),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
                         ),
-                        _buildPrivacySection(
-                          l10n.translate('privacy_ads_header'),
-                          l10n.translate('privacy_ads_body'),
-                        ),
-                        _buildPrivacySection(
-                          l10n.translate('privacy_audio_header'),
-                          l10n.translate('privacy_audio_body'),
-                        ),
-                        _buildPrivacySection(
-                          l10n.translate('privacy_disclaimer_header'),
-                          l10n.translate('privacy_disclaimer_body'),
-                        ),
-                        _buildPrivacySection(
-                          l10n.translate('privacy_rights_header'),
-                          l10n.translate('privacy_rights_body'),
+                      ),
+                      if (isFirstLaunch) ...<Widget>[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF00E5FF).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFF00E5FF)
+                                  .withValues(alpha: 0.35),
+                            ),
+                          ),
+                          child: Text(
+                            l10n.translate('privacy_first_launch_intro'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              height: 1.4,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  alignment: WrapAlignment.end,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF80D8FF),
-                        side: BorderSide(
-                          color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                      const SizedBox(height: 12),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              _buildPrivacySection(
+                                l10n.translate('privacy_dev_header'),
+                                l10n.translate('privacy_dev_body'),
+                              ),
+                              _buildPrivacySection(
+                                l10n.translate('privacy_ads_header'),
+                                l10n.translate('privacy_ads_body'),
+                              ),
+                              _buildPrivacySection(
+                                l10n.translate('privacy_audio_header'),
+                                l10n.translate('privacy_audio_body'),
+                              ),
+                              _buildPrivacySection(
+                                l10n.translate('privacy_disclaimer_header'),
+                                l10n.translate('privacy_disclaimer_body'),
+                              ),
+                              _buildPrivacySection(
+                                l10n.translate('privacy_rights_header'),
+                                l10n.translate('privacy_rights_body'),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      onPressed: () {
-                        Clipboard.setData(
-                          const ClipboardData(
-                            text: HuaweiAdsConfig.developerEmail,
-                          ),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              l10n.translate('email_copied_toast'),
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.copy_rounded, size: 16),
-                      label: Text(l10n.translate('btn_copy_email')),
-                    ),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF00E5FF),
-                        foregroundColor: const Color(0xFF041428),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: isFirstLaunch
+                            ? <Widget>[
+                                TextButton(
+                                  onPressed: SystemNavigator.pop,
+                                  child: Text(
+                                    l10n.translate('btn_exit_app'),
+                                    style: const TextStyle(
+                                      color: Color(0xFF90A4AE),
+                                    ),
+                                  ),
+                                ),
+                                FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF00E5FF),
+                                    foregroundColor: const Color(0xFF041428),
+                                  ),
+                                  onPressed: () async {
+                                    Navigator.of(dialogContext).pop();
+                                    await ejector.acceptPrivacyPolicy();
+                                    if (mounted) {
+                                      _loadInterstitialAd();
+                                    }
+                                  },
+                                  icon: const Icon(
+                                    Icons.check_circle_outline_rounded,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    l10n.translate('btn_accept_continue'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ]
+                            : <Widget>[
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF80D8FF),
+                                    side: BorderSide(
+                                      color: const Color(0xFF00E5FF)
+                                          .withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                      const ClipboardData(
+                                        text: HuaweiAdsConfig.developerEmail,
+                                      ),
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          l10n.translate('email_copied_toast'),
+                                        ),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                  icon:
+                                      const Icon(Icons.copy_rounded, size: 16),
+                                  label: Text(l10n.translate('btn_copy_email')),
+                                ),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF00E5FF),
+                                    foregroundColor: const Color(0xFF041428),
+                                  ),
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(),
+                                  child: Text(
+                                    l10n.translate('btn_close'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
                       ),
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: Text(
-                        l10n.translate('btn_close'),
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -886,7 +979,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          bottomNavigationBar: _buildBottomHuaweiBannerAd(l10n),
+          bottomNavigationBar: HuaweiBottomBannerAd(
+            isPrivacyAccepted: ejector.isPrivacyAccepted,
+            isAdsSdkReady: ejector.isAdsSdkReady,
+          ),
         );
       },
     );
@@ -1418,7 +1514,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: _showPrivacyPolicyDialog,
+            onPressed: () => _showPrivacyPolicyDialog(),
             icon: const Icon(
               Icons.verified_user_outlined,
               size: 16,
@@ -1436,94 +1532,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  /// Widget Huawei Petal Banner Ad neo ở đáy màn hình chính
-  Widget _buildBottomHuaweiBannerAd(AppLocalizations l10n) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 60,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF050914),
-          border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-        ),
-        alignment: Alignment.center,
-        child: HuaweiAdsConfig.isAndroidPlatform
-            ? SizedBox(
-                width: 320,
-                height: 50,
-                child: BannerView(
-                  adSlotId: HuaweiAdsConfig.bannerAdSlotId,
-                  size: BannerAdSize.s320x50,
-                  adParam: AdParam(),
-                  refreshDuration: const Duration(seconds: 60),
-                  controller: _bannerController,
-                ),
-              )
-            : Container(
-                width: 320,
-                height: 50,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10203B),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFFCE0E2D).withValues(alpha: 0.65),
-                  ),
-                ),
-                child: Row(
-                  children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFCE0E2D),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'AD',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        l10n.translate(
-                          'ad_banner_label',
-                          <String, String>{
-                            'slotId': HuaweiAdsConfig.bannerAdSlotId,
-                          },
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFE0E6ED),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      _isBannerLoaded || _isInterstitialReady
-                          ? Icons.check_circle_rounded
-                          : Icons.info_outline_rounded,
-                      size: 16,
-                      color: const Color(0xFF64FFDA),
-                    ),
-                  ],
-                ),
-              ),
-      ),
     );
   }
 }

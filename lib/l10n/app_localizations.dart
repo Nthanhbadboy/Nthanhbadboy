@@ -139,7 +139,7 @@ class AppLocalizations {
       'privacy_updated': 'Effective Date: October 21, 2026',
       'privacy_dev_header': '1. Developer Information',
       'privacy_dev_body':
-          'Developer: Nguyen Minh Thanh\nApplication: Water Ejector: Speaker Cleaner\nPackage ID: NGUYENMINHTHANH.WaterEjector\nContact Email: alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nPackage ID: NGUYENMINHTHANH.WaterEjector\nHuawei App ID: 119454967\nContact Email: alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK & OAID',
       'privacy_ads_body':
           'This app integrates the official Huawei Petal Ads SDK (huawei_ads) to display Banner Ads and Interstitial Ads. The SDK may process device identifiers including Open Advertising ID (OAID), network state, and ad performance metrics strictly for ad delivery and fraud prevention.',
@@ -154,6 +154,10 @@ class AppLocalizations {
           'You can opt out of personalized ads or reset your OAID anytime at: Settings > Privacy > Ads and privacy > Limit ad tracking / Reset Ad-ID. For any data inquiries or deletion requests, email alphaplus.thanh82@gmail.com.',
       'btn_copy_email': 'Copy Support Email',
       'email_copied_toast': 'Copied alphaplus.thanh82@gmail.com',
+      'privacy_first_launch_intro':
+          'Please review and accept our Privacy Policy before using the app. Huawei Petal Ads (OAID) initializes only after your consent.',
+      'btn_accept_continue': 'Accept & Continue',
+      'btn_exit_app': 'Exit App',
     },
 
     // 2. VIETNAMESE (Tiếng Việt)
@@ -218,7 +222,7 @@ class AppLocalizations {
       'privacy_updated': 'Ngày hiệu lực: 21/10/2026',
       'privacy_dev_header': '1. Thông tin Nhà phát triển',
       'privacy_dev_body':
-          'Nhà phát triển: Nguyen Minh Thanh\nỨng dụng: Water Ejector: Speaker Cleaner\nPackage ID: NGUYENMINHTHANH.WaterEjector\nEmail liên hệ: alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nMã gói (Package ID): NGUYENMINHTHANH.WaterEjector\nHuawei App ID: 119454967\nEmail liên hệ: alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK & OAID',
       'privacy_ads_body':
           'Ứng dụng tích hợp Huawei Petal Ads SDK (huawei_ads) để hiển thị Banner Ad và Interstitial Ad. SDK có thể xử lý mã định danh quảng cáo mở (OAID), trạng thái mạng và dữ liệu tương tác quảng cáo nhằm phân phối quảng cáo hợp lệ và chống gian lận.',
@@ -233,6 +237,10 @@ class AppLocalizations {
           'Bạn có thể đặt lại hoặc tắt theo dõi OAID bất cứ lúc nào tại: Cài đặt > Quyền riêng tư > Quảng cáo và quyền riêng tư > Giới hạn theo dõi quảng cáo / Đặt lại ID quảng cáo. Mọi yêu cầu hỗ trợ hoặc xóa dữ liệu vui lòng gửi về alphaplus.thanh82@gmail.com.',
       'btn_copy_email': 'Sao chép Email Hỗ trợ',
       'email_copied_toast': 'Đã sao chép alphaplus.thanh82@gmail.com',
+      'privacy_first_launch_intro':
+          'Vui lòng xem và đồng ý Chính sách Bảo mật trước khi sử dụng. Huawei Petal Ads (OAID) chỉ khởi tạo sau khi bạn đồng ý.',
+      'btn_accept_continue': 'Đồng ý & Tiếp tục',
+      'btn_exit_app': 'Thoát ứng dụng',
     },
 
     // 3. CHINESE SIMPLIFIED (简体中文)
@@ -290,7 +298,7 @@ class AppLocalizations {
       'privacy_updated': '生效日期：2026年10月21日',
       'privacy_dev_header': '1. 开发者信息',
       'privacy_dev_body':
-          '开发者：Nguyen Minh Thanh\n应用名称：Water Ejector: Speaker Cleaner\n包名：NGUYENMINHTHANH.WaterEjector\n联系邮箱：alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\n应用包名：NGUYENMINHTHANH.WaterEjector\nHuawei App ID: 119454967\n联系邮箱：alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. 华为 Petal Ads SDK 与 OAID 声明',
       'privacy_ads_body':
           '本应用集成了官方华为鲸鸿动能广告 SDK（huawei_ads），可能会收集并处理开放匿名设备标识符（OAID）、网络状态及广告互动数据，仅用于广告展示与反作弊。',
@@ -305,6 +313,10 @@ class AppLocalizations {
           '您可随时前往“设置 > 隐私 > 广告与隐私”开启“限制广告跟踪”或点击“重置广告标识符”管理 OAID。如有任何数据相关请求，请联系 alphaplus.thanh82@gmail.com。',
       'btn_copy_email': '复制联系邮箱',
       'email_copied_toast': '已复制 alphaplus.thanh82@gmail.com',
+      'privacy_first_launch_intro':
+          '使用前请阅读并同意隐私政策。华为鲸鸿动能广告 SDK（OAID）仅在您同意后初始化。',
+      'btn_accept_continue': '同意并继续',
+      'btn_exit_app': '退出应用',
     },
 
     // 4. SPANISH (Español)
@@ -369,7 +381,7 @@ class AppLocalizations {
       'privacy_updated': 'Fecha de entrada en vigor: 21/10/2026',
       'privacy_dev_header': '1. Información del Desarrollador',
       'privacy_dev_body':
-          'Desarrollador: Nguyen Minh Thanh\nAplicación: Water Ejector: Speaker Cleaner\nID de paquete: NGUYENMINHTHANH.WaterEjector\nCorreo: alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nID de paquete: NGUYENMINHTHANH.WaterEjector\nHuawei App ID: 119454967\nCorreo de contacto: alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK y OAID',
       'privacy_ads_body':
           'Esta app integra Huawei Petal Ads SDK (huawei_ads) para mostrar anuncios Banner e Interstitial, recopilando el identificador de publicidad abierto (OAID) y estado de red únicamente para entrega publicitaria y prevención de fraude.',
@@ -384,6 +396,10 @@ class AppLocalizations {
           'Puedes restablecer o limitar el seguimiento de tu OAID en: Ajustes > Privacidad > Anuncios y privacidad > Limitar seguimiento de anuncios. Contacto: alphaplus.thanh82@gmail.com.',
       'btn_copy_email': 'Copiar correo de soporte',
       'email_copied_toast': 'Copiado: alphaplus.thanh82@gmail.com',
+      'privacy_first_launch_intro':
+          'Revisa y acepta nuestra Política de Privacidad antes de continuar. Huawei Petal Ads (OAID) solo se inicia tras tu consentimiento.',
+      'btn_accept_continue': 'Aceptar y Continuar',
+      'btn_exit_app': 'Salir',
     },
 
     // 5. PORTUGUESE (Português)
@@ -448,7 +464,7 @@ class AppLocalizations {
       'privacy_updated': 'Data de vigência: 21/10/2026',
       'privacy_dev_header': '1. Informações do Desenvolvedor',
       'privacy_dev_body':
-          'Desenvolvedor: Nguyen Minh Thanh\nAplicativo: Water Ejector: Speaker Cleaner\nPacote: NGUYENMINHTHANH.WaterEjector\nE-mail: alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nPackage ID: NGUYENMINHTHANH.WaterEjector\nHuawei App ID: 119454967\nE-mail de contato: alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK e OAID',
       'privacy_ads_body':
           'Este app utiliza o Huawei Petal Ads SDK (huawei_ads) e pode coletar o Open Advertising ID (OAID) e estado da rede exclusivamente para exibição segura de anúncios.',
@@ -463,6 +479,10 @@ class AppLocalizations {
           'Você pode redefinir ou desativar a personalização do OAID em: Configurações > Privacidade > Anúncios e privacidade. Solicitações de dados: alphaplus.thanh82@gmail.com.',
       'btn_copy_email': 'Copiar E-mail de Suporte',
       'email_copied_toast': 'Copiado: alphaplus.thanh82@gmail.com',
+      'privacy_first_launch_intro':
+          'Leia e aceite nossa Política de Privacidade antes de usar. O Huawei Petal Ads (OAID) só é iniciado após o seu consentimento.',
+      'btn_accept_continue': 'Aceitar e Continuar',
+      'btn_exit_app': 'Sair do App',
     },
 
     // 6. RUSSIAN (Русский)
@@ -527,7 +547,7 @@ class AppLocalizations {
       'privacy_updated': 'Дата вступления в силу: 21.10.2026',
       'privacy_dev_header': '1. Сведения о разработчике',
       'privacy_dev_body':
-          'Разработчик: Nguyen Minh Thanh\nПриложение: Water Ejector: Speaker Cleaner\nПакет: NGUYENMINHTHANH.WaterEjector\nEmail: alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nPackage ID: NGUYENMINHTHANH.WaterEjector\nHuawei App ID: 119454967\nКонтактный Email: alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK и OAID',
       'privacy_ads_body':
           'Приложение использует Huawei Petal Ads SDK (huawei_ads) и может обрабатывать рекламный идентификатор OAID и статус сети исключительно для показа рекламы и защиты от мошенничества.',
@@ -542,6 +562,10 @@ class AppLocalizations {
           'Вы можете сбросить или ограничить OAID в меню: Настройки > Конфиденциальность > Реклама и конфиденциальность. По вопросам данных: alphaplus.thanh82@gmail.com.',
       'btn_copy_email': 'Скопировать Email',
       'email_copied_toast': 'Скопировано: alphaplus.thanh82@gmail.com',
+      'privacy_first_launch_intro':
+          'Пожалуйста, примите Политику конфиденциальности перед началом работы. Huawei Petal Ads (OAID) запускается только после вашего согласия.',
+      'btn_accept_continue': 'Принять и продолжить',
+      'btn_exit_app': 'Выйти',
     },
 
     // 7. FRENCH (Français)
@@ -606,7 +630,7 @@ class AppLocalizations {
       'privacy_updated': 'Date d’effet : 21/10/2026',
       'privacy_dev_header': '1. Informations sur le Développeur',
       'privacy_dev_body':
-          'Développeur : Nguyen Minh Thanh\nApplication : Water Ejector: Speaker Cleaner\nPackage : NGUYENMINHTHANH.WaterEjector\nE-mail : alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nPackage ID : NGUYENMINHTHANH.WaterEjector\nHuawei App ID : 119454967\nE-mail de contact : alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK et OAID',
       'privacy_ads_body':
           'Cette application intègre Huawei Petal Ads SDK (huawei_ads) et utilise l’identifiant publicitaire ouvert (OAID) uniquement pour la diffusion d’annonces et la prévention de la fraude.',
@@ -621,6 +645,10 @@ class AppLocalizations {
           'Désactivez le suivi ou réinitialisez votre OAID dans : Paramètres > Confidentialité > Publicités et confidentialité. Contact : alphaplus.thanh82@gmail.com.',
       'btn_copy_email': 'Copier l’e-mail support',
       'email_copied_toast': 'Copié : alphaplus.thanh82@gmail.com',
+      'privacy_first_launch_intro':
+          'Veuillez lire et accepter notre Politique de Confidentialité avant de continuer. Huawei Petal Ads (OAID) ne s’active qu’après votre accord.',
+      'btn_accept_continue': 'Accepter et Continuer',
+      'btn_exit_app': 'Quitter',
     },
 
     // 8. JAPANESE (日本語)
@@ -680,7 +708,7 @@ class AppLocalizations {
       'privacy_updated': '発効日：2026年10月21日',
       'privacy_dev_header': '1. 開発者情報',
       'privacy_dev_body':
-          '開発者：Nguyen Minh Thanh\nアプリ名：Water Ejector: Speaker Cleaner\nパッケージID：NGUYENMINHTHANH.WaterEjector\n連絡先メール：alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nパッケージID：NGUYENMINHTHANH.WaterEjector\nHuawei App ID：119454967\n連絡先メール：alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK と OAID について',
       'privacy_ads_body':
           '本アプリは広告配信のため Huawei Petal Ads SDK（huawei_ads）を使用し、オープン広告ID（OAID）およびネットワーク状態を取得する場合があります。',
@@ -695,6 +723,10 @@ class AppLocalizations {
           '端末の「設定 > プライバシー > 広告とプライバシー」からいつでも広告追跡の制限や OAID のリセットが可能です。お問い合わせ：alphaplus.thanh82@gmail.com',
       'btn_copy_email': 'サポートメールをコピー',
       'email_copied_toast': 'alphaplus.thanh82@gmail.com をコピーしました',
+      'privacy_first_launch_intro':
+          'ご利用前にプライバシーポリシーをご確認のうえ同意してください。Huawei Petal Ads（OAID）は同意後にのみ初期化されます。',
+      'btn_accept_continue': '同意して続行',
+      'btn_exit_app': '終了する',
     },
 
     // 9. GERMAN (Deutsch)
@@ -759,7 +791,7 @@ class AppLocalizations {
       'privacy_updated': 'Gültig ab: 21.10.2026',
       'privacy_dev_header': '1. Entwicklerangaben',
       'privacy_dev_body':
-          'Entwickler: Nguyen Minh Thanh\nApp: Water Ejector: Speaker Cleaner\nPaketname: NGUYENMINHTHANH.WaterEjector\nE-Mail: alphaplus.thanh82@gmail.com',
+          'Developer Name: NGUYEN MINH THANH\nApp Name: Water Ejector: Speaker Cleaner\nPaket-ID: NGUYENMINHTHANH.WaterEjector\nHuawei App ID: 119454967\nKontakt-E-Mail: alphaplus.thanh82@gmail.com',
       'privacy_ads_header': '2. Huawei Petal Ads SDK & OAID',
       'privacy_ads_body':
           'Diese App nutzt das offizielle Huawei Petal Ads SDK (huawei_ads) und verarbeitet die Open Advertising ID (OAID) sowie den Netzwerkstatus ausschließlich zur Werbeauslieferung und Betrugsprävention.',
@@ -774,6 +806,10 @@ class AppLocalizations {
           'Sie können das Ad-Tracking jederzeit deaktivieren oder Ihre OAID zurücksetzen unter: Einstellungen > Datenschutz > Werbung und Datenschutz. Kontakt: alphaplus.thanh82@gmail.com.',
       'btn_copy_email': 'Support-E-Mail kopieren',
       'email_copied_toast': 'alphaplus.thanh82@gmail.com kopiert',
+      'privacy_first_launch_intro':
+          'Bitte lesen und akzeptieren Sie vor der Nutzung unsere Datenschutzerklärung. Huawei Petal Ads (OAID) startet erst nach Ihrer Zustimmung.',
+      'btn_accept_continue': 'Akzeptieren & Weiter',
+      'btn_exit_app': 'Beenden',
     },
   };
 }

@@ -20,6 +20,11 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="m">
 
+        <!-- Huawei App ID chính thức trên AppGallery Connect & Petal Ads -->
+        <meta-data
+            android:name="com.huawei.hms.client.appid"
+            android:value="appid=119454967" />
+
         <!-- Khai báo tối ưu cho Huawei HMS Ads Lite SDK -->
         <meta-data
             android:name="hms_ads_kit_type"

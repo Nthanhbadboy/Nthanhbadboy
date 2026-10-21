@@ -10,7 +10,7 @@
 | :--- | :--- |
 | **Tên ứng dụng** | `Water Ejector: Speaker Cleaner` |
 | **Package Name / Application ID** | `NGUYENMINHTHANH.WaterEjector` |
-| **Nhà phát triển** | **Nguyen Minh Thanh** (`alphaplus.thanh82@gmail.com`) |
+| **Nhà phát triển** | **NGUYEN MINH THANH** (`alphaplus.thanh82@gmail.com`) |
 | **Nền tảng đích** | Android / HarmonyOS (**Huawei AppGallery**) |
 | **Quảng cáo tích hợp** | **Huawei Petal Ads (`huawei_ads: ^13.4.72+300`)** — Banner Ad & Interstitial Ad |
 | **Đa ngôn ngữ (9 Locales)** | `en` (Mặc định), `vi`, `zh`, `es`, `pt`, `ru`, `fr`, `ja`, `de` |

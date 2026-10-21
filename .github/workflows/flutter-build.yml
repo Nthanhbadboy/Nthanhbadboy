@@ -113,10 +113,17 @@ jobs:
           pkg_line="$(echo "$badging" | head -n 1)"
           echo "$pkg_line" | grep -Fq "package: name='NGUYENMINHTHANH.WaterEjector'"
 
+          manifest_xml="$("$aapt2" dump xmltree "$apk" --file AndroidManifest.xml)"
+          echo "$manifest_xml" | grep -Fq "appid=119454967"
+          if echo "$manifest_xml" | grep -Fq "android.permission.RECORD_AUDIO"; then
+            echo "::error title=Forbidden Permission::RECORD_AUDIO must not exist in APK"
+            exit 1
+          fi
+
           mkdir -p dist-apk
           cp "$apk" dist-apk/WaterEjector-NGUYENMINHTHANH.WaterEjector-huawei-release.apk
           sha256sum dist-apk/*.apk > dist-apk/SHA256SUMS.txt
-          echo "::notice title=Verified Huawei APK::$pkg_line | $(cat dist-apk/SHA256SUMS.txt)"
+          echo "::notice title=Verified Huawei APK::$pkg_line | HuaweiAppID=appid=119454967 | $(cat dist-apk/SHA256SUMS.txt)"
 
       - name: Build Flutter Web Release Preview
         shell: bash

@@ -4,20 +4,28 @@ import 'dart:ui';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
+import '../utils/huawei_ads_config.dart';
 import '../utils/sound_generator.dart';
 
-/// Provider quản lý trạng thái chu trình đẩy nước, kiểm tra loa & đổi ngôn ngữ (Change Locale)
+/// Provider quản lý chu trình đẩy nước, kiểm tra loa, chấp thuận quyền riêng tư & đổi 9 ngôn ngữ
 class WaterEjectorProvider extends ChangeNotifier {
   WaterEjectorProvider({
     bool enablePlatformAudio = true,
     Locale initialLocale = const Locale('en'),
+    bool initialPrivacyAccepted = false,
   })  : _enablePlatformAudio = enablePlatformAudio,
-        _locale = initialLocale {
+        _locale = initialLocale,
+        _isPrivacyAccepted = initialPrivacyAccepted,
+        _isAdsSdkReady = initialPrivacyAccepted {
     if (_enablePlatformAudio) {
       _initAudioPlayer();
-      refreshMediaVolume();
+      unawaited(refreshMediaVolume());
+    }
+    if (_isPrivacyAccepted) {
+      unawaited(_activateAdsSdk());
     }
   }
 
@@ -32,6 +40,11 @@ class WaterEjectorProvider extends ChangeNotifier {
   // Ngôn ngữ hiện hành (Mặc định: Tiếng Anh 'en')
   Locale _locale;
 
+  // Trạng thái đồng ý Chính sách Bảo mật lần đầu (is_privacy_accepted)
+  bool _isPrivacyAccepted;
+  bool _isAdsSdkReady;
+
+  // Không tự động chạy bất kỳ chu trình âm thanh / rung nào khi mở ứng dụng
   EjectMode _selectedMode = EjectMode.standard165Hz;
   int _selectedDurationSeconds = 30;
   bool _isEjecting = false;
@@ -46,6 +59,8 @@ class WaterEjectorProvider extends ChangeNotifier {
 
   // --- Getters ---
   Locale get locale => _locale;
+  bool get isPrivacyAccepted => _isPrivacyAccepted;
+  bool get isAdsSdkReady => _isAdsSdkReady;
   EjectMode get selectedMode => _selectedMode;
   int get selectedDurationSeconds => _selectedDurationSeconds;
   bool get isEjecting => _isEjecting;
@@ -55,7 +70,34 @@ class WaterEjectorProvider extends ChangeNotifier {
   int get completedCyclesCount => _completedCyclesCount;
   double get mediaVolumePercent => _mediaVolumePercent;
 
-  /// Đổi ngôn ngữ giao diện linh hoạt trong 9 ngôn ngữ quốc tế được hỗ trợ
+  Future<void> _activateAdsSdk() async {
+    await HuaweiAdsConfig.ensureSdkInitialized();
+    if (!_isAdsSdkReady) {
+      _isAdsSdkReady = true;
+      notifyListeners();
+    }
+  }
+
+  /// Lưu trạng thái đồng ý Chính sách Bảo mật (is_privacy_accepted = true) và mở khóa HMS Petal Ads
+  Future<void> acceptPrivacyPolicy() async {
+    if (_isPrivacyAccepted && _isAdsSdkReady) return;
+    _isPrivacyAccepted = true;
+    _isAdsSdkReady = true;
+    HapticFeedback.selectionClick();
+    notifyListeners();
+
+    unawaited(_persistPrivacyAcceptance());
+    await HuaweiAdsConfig.ensureSdkInitialized();
+  }
+
+  Future<void> _persistPrivacyAcceptance() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(HuaweiAdsConfig.privacyAcceptedPrefsKey, true);
+    } catch (_) {}
+  }
+
+  /// Đổi ngôn ngữ giao diện linh hoạt trong 9 ngôn ngữ quốc tế được hỗ trợ & lưu vào SharedPreferences
   void changeLocale(Locale newLocale) {
     final bool supported = AppLocalizations.supportedLocales.any(
       (Locale item) => item.languageCode == newLocale.languageCode,
@@ -67,6 +109,14 @@ class WaterEjectorProvider extends ChangeNotifier {
     _locale = resolved;
     HapticFeedback.selectionClick();
     notifyListeners();
+    unawaited(_persistLocale(resolved.languageCode));
+  }
+
+  Future<void> _persistLocale(String code) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(HuaweiAdsConfig.selectedLocalePrefsKey, code);
+    } catch (_) {}
   }
 
   int get totalDurationMilliseconds => _selectedDurationSeconds * 1000;
@@ -182,7 +232,7 @@ class WaterEjectorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Bật / Tắt chu trình đẩy nước Water Ejector
+  /// Bật / Tắt chu trình đẩy nước Water Ejector (Chỉ chạy khi người dùng chủ động bấm)
   Future<void> toggleWaterEjector() async {
     if (_isEjecting) {
       await stopAllAudio();
@@ -201,7 +251,6 @@ class WaterEjectorProvider extends ChangeNotifier {
     _currentFrequencyHz =
         SoundGenerator.calculateLiveFrequency(_selectedMode, 0);
 
-    // Khởi chạy đồng hồ đếm ngược ngay lập tức (0ms độ trễ phản hồi UI)
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       _elapsedMilliseconds += 100;

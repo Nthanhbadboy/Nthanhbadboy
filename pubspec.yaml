@@ -1,9 +1,9 @@
 name: water_ejector
-description: "Water Ejector: Speaker Cleaner - Multilingual (9 languages) 165Hz Speaker Cleaner & Audio Tester optimized for Huawei AppGallery with Huawei Petal Ads SDK."
+description: "Water Ejector: Speaker Cleaner - Multilingual (9 languages) 165Hz Speaker Cleaner & Audio Tester built for Huawei AppGallery with pure Huawei Petal Ads SDK."
 publish_to: 'none'
 
-# Phiên bản phát hành (versionName: 1.1.1, versionCode: 3)
-version: 1.1.1+3
+# Phiên bản phát hành chính thức lên Huawei AppGallery (versionName: 1.2.0, versionCode: 4)
+version: 1.2.0+4
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -20,13 +20,16 @@ dependencies:
   # Bộ icon giao diện chuẩn
   cupertino_icons: ^1.0.8
 
-  # Huawei Petal Ads SDK chính thức cho hệ sinh thái HMS / AppGallery
+  # Huawei Petal Ads SDK chính thức cho hệ sinh thái HMS / AppGallery (KHÔNG dùng AdMob)
   huawei_ads: ^13.4.72+300
+
+  # Lưu trạng thái đồng ý Chính sách Bảo mật lần đầu (is_privacy_accepted) & ngôn ngữ đã chọn
+  shared_preferences: ^2.3.3
 
   # Engine phát âm thanh tần số chuẩn PCM 16-bit độ trễ thấp (hỗ trợ BytesSource & AssetSource)
   audioplayers: ^6.1.0
 
-  # Quản lý trạng thái (State Management) cho âm thanh & đổi ngôn ngữ linh hoạt (Change Locale)
+  # Quản lý trạng thái (State Management) cho âm thanh, quyền riêng tư & đổi ngôn ngữ linh hoạt
   provider: ^6.1.2
 
 dev_dependencies:
