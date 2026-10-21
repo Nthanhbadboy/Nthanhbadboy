@@ -1,0 +1,157 @@
+name: Build Water Ejector Huawei APK & Web Preview
+
+on:
+  push:
+    branches:
+      - arena/3028496c-nthanhbadboy
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-huawei-release:
+    name: Analyze, Test, Build Huawei APK & Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter Stable SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Verify Flutter environment & install dependencies
+        run: |
+          flutter --version
+          flutter pub get
+
+      - name: Run static analysis (flutter analyze)
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter analyze 2>&1 | tee "$RUNNER_TEMP/analyze.log"; then
+            msg="$(tail -n 30 "$RUNNER_TEMP/analyze.log" | tr '\n' ' ' | cut -c1-950)"
+            echo "::error title=flutter analyze failed::$msg"
+            exit 1
+          fi
+          echo "::notice title=flutter analyze::$(tail -n 2 "$RUNNER_TEMP/analyze.log" | tr '\n' ' ')"
+
+      - name: Run unit & widget tests (flutter test)
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter test 2>&1 | tee "$RUNNER_TEMP/test.log"; then
+            summary="$(grep -E '(EXCEPTION|ParentData|overflowed|Expected|Actual|Failed)' "$RUNNER_TEMP/test.log" | head -n 10 | tr '\n' ' ' | cut -c1-900)"
+            echo "::error title=flutter test summary::$summary"
+            exit 1
+          fi
+          echo "::notice title=flutter test::$(tail -n 2 "$RUNNER_TEMP/test.log" | tr '\n' ' ')"
+
+      - name: Prepare optional release keystore from GitHub Secrets
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          store_file="$GITHUB_WORKSPACE/android/release.keystore"
+          if [[ -n "${KEYSTORE_BASE64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$store_file"
+            echo "ANDROID_RELEASE_STORE_FILE=$store_file" >> "$GITHUB_ENV"
+            echo "ANDROID_RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_RELEASE_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_RELEASE_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "::notice title=APK Signing::Signed with repository production keystore"
+          else
+            echo "::notice title=APK Signing::Signed with fallback debug keystore"
+          fi
+
+      - name: Build Android Release APK for Huawei AppGallery
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter build apk --release 2>&1 | tee "$RUNNER_TEMP/apk.log"; then
+            msg="$(grep -E 'FAILURE:|What went wrong:|Could not |Execution failed|e: |error:|Error:' "$RUNNER_TEMP/apk.log" | tail -n 25 | tr '\n' ' ' | cut -c1-950)"
+            if [[ -z "$msg" ]]; then
+              msg="$(tail -n 30 "$RUNNER_TEMP/apk.log" | tr '\n' ' ' | cut -c1-950)"
+            fi
+            echo "::error title=flutter build apk failed::$msg"
+            exit 1
+          fi
+          echo "::notice title=flutter build apk::$(tail -n 2 "$RUNNER_TEMP/apk.log" | tr '\n' ' ')"
+
+      - name: Verify APK Package Name & HMS Petal Ads Integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="build/app/outputs/flutter-apk/app-release.apk"
+          test -f "$apk"
+
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          aapt2="$(find "$sdk_root/build-tools" -type f -name aapt2 | sort -V | tail -n 1)"
+          apksigner="$(find "$sdk_root/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+
+          "$apksigner" verify --verbose "$apk" >/dev/null
+          badging="$("$aapt2" dump badging "$apk")"
+          pkg_line="$(echo "$badging" | head -n 1)"
+          echo "$pkg_line" | grep -Fq "package: name='NGUYENMINHTHANH.WaterEjector'"
+
+          manifest_xml="$("$aapt2" dump xmltree "$apk" --file AndroidManifest.xml)"
+          echo "$manifest_xml" | grep -Fq "appid=119454967"
+          if echo "$manifest_xml" | grep -Fq "android.permission.RECORD_AUDIO"; then
+            echo "::error title=Forbidden Permission::RECORD_AUDIO must not exist in APK"
+            exit 1
+          fi
+
+          mkdir -p dist-apk
+          cp "$apk" dist-apk/WaterEjector-NGUYENMINHTHANH.WaterEjector-huawei-release.apk
+          sha256sum dist-apk/*.apk > dist-apk/SHA256SUMS.txt
+          echo "::notice title=Verified Huawei APK::$pkg_line | HuaweiAppID=appid=119454967 | $(cat dist-apk/SHA256SUMS.txt)"
+
+      - name: Build Flutter Web Release Preview
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter build web --release 2>&1 | tee "$RUNNER_TEMP/web.log"; then
+            msg="$(tail -n 30 "$RUNNER_TEMP/web.log" | tr '\n' ' ' | cut -c1-950)"
+            echo "::error title=flutter build web failed::$msg"
+            exit 1
+          fi
+          echo "::notice title=flutter build web::$(tail -n 2 "$RUNNER_TEMP/web.log" | tr '\n' ' ')"
+
+      - name: Clean up temporary keystore
+        if: always()
+        run: rm -f android/release.keystore
+
+      - name: Upload Huawei Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-ejector-huawei-apk
+          path: dist-apk/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Web Preview Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-ejector-web-preview
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,92 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // Flutter Gradle Plugin phải được đặt sau Android & Kotlin Gradle plugins
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// Tự động kích hoạt plugin AppGallery Connect nếu đã đặt file agconnect-services.json vào android/app/
+if (file("agconnect-services.json").exists()) {
+    apply plugin: "com.huawei.agconnect"
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader("UTF-8") { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
+def envStoreFile = System.getenv("ANDROID_RELEASE_STORE_FILE")
+def hasReleaseKeystore = keystorePropertiesFile.exists() || (envStoreFile != null && !envStoreFile.isEmpty())
+
+android {
+    // Namespace & Application ID chuẩn xác theo yêu cầu dự án
+    namespace = "NGUYENMINHTHANH.WaterEjector"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+    defaultConfig {
+        // Application ID định danh duy nhất trên Huawei AppGallery
+        applicationId = "NGUYENMINHTHANH.WaterEjector"
+        // HMS Petal Ads SDK hỗ trợ từ API 19+, tối ưu chuẩn Android mới với API 24+
+        minSdk = Math.max(flutter.minSdkVersion, 24)
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+        multiDexEnabled = true
+    }
+
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            release {
+                storeFile = keystorePropertiesFile.exists()
+                    ? file(keystoreProperties["storeFile"])
+                    : file(envStoreFile)
+                storePassword = keystorePropertiesFile.exists()
+                    ? keystoreProperties["storePassword"]
+                    : System.getenv("ANDROID_RELEASE_STORE_PASSWORD")
+                keyAlias = keystorePropertiesFile.exists()
+                    ? keystoreProperties["keyAlias"]
+                    : System.getenv("ANDROID_RELEASE_KEY_ALIAS")
+                keyPassword = keystorePropertiesFile.exists()
+                    ? keystoreProperties["keyPassword"]
+                    : System.getenv("ANDROID_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Sử dụng keystore release chính thức nếu có, ngược lại fallback về debug để chạy thử ngay
+            signingConfig = hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+        debug {
+            signingConfig = signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation "androidx.multidex:multidex:2.0.1"
+    // Huawei Petal Ads SDK (Ads Lite + OAID Identifier) tối ưu hóa cho AppGallery & mọi thiết bị Android
+    implementation "com.huawei.hms:ads-lite:13.4.72.300"
+    implementation "com.huawei.hms:ads-identifier:3.4.62.300"
+}

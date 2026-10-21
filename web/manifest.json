@@ -1,0 +1,40 @@
+{
+    "name": "Water Ejector: Speaker Cleaner",
+    "short_name": "Water Ejector",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#060B19",
+    "theme_color": "#00E5FF",
+    "description": "Water Ejector: Speaker Cleaner - 165Hz Speaker Cleaner & Audio Tester for Huawei AppGallery.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-114.png",
+            "sizes": "114x114",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
