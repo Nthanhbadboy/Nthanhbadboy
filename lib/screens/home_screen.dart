@@ -113,15 +113,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _onWaterEjectCycleCompleted() async {
     if (!mounted) return;
 
-    if (HuaweiAdsConfig.isAndroidPlatform && _interstitialAd != null) {
-      try {
-        final bool loaded = await _interstitialAd!.isLoaded() ?? false;
-        if (loaded) {
-          await _interstitialAd!.show();
-          return; // Hộp thoại kết quả sẽ hiện ngay sau khi người dùng đóng Interstitial Ad
+    if (HuaweiAdsConfig.isAndroidPlatform) {
+      if (_isInterstitialReady && _interstitialAd != null) {
+        try {
+          final bool loaded = await _interstitialAd!.isLoaded() ?? false;
+          if (loaded) {
+            await _interstitialAd!.show();
+            return; // Hộp thoại kết quả sẽ hiện ngay sau khi người dùng đóng Interstitial Ad
+          }
+        } catch (e) {
+          debugPrint('Lỗi khi hiển thị Huawei Interstitial Ad: $e');
         }
-      } catch (e) {
-        debugPrint('Lỗi khi hiển thị Huawei Interstitial Ad: $e');
       }
       _loadInterstitialAd();
       if (mounted) {

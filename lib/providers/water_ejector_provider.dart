@@ -185,24 +185,8 @@ class WaterEjectorProvider extends ChangeNotifier {
     _elapsedMilliseconds = 0;
     _currentFrequencyHz =
         SoundGenerator.calculateLiveFrequency(_selectedMode, 0);
-    notifyListeners();
 
-    HapticFeedback.heavyImpact();
-    await refreshMediaVolume();
-    await _setKeepScreenOn(true);
-
-    if (_enablePlatformAudio && _audioPlayer != null) {
-      try {
-        final Uint8List wavBytes =
-            SoundGenerator.getEjectWavBytes(_selectedMode);
-        await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
-        await _audioPlayer!.setVolume(1.0);
-        await _audioPlayer!.play(BytesSource(wavBytes, mimeType: 'audio/wav'));
-      } catch (e) {
-        debugPrint('Không thể phát sóng âm đẩy nước: $e');
-      }
-    }
-
+    // Khởi chạy đồng hồ đếm ngược ngay lập tức (0ms độ trễ phản hồi UI)
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       _elapsedMilliseconds += 100;
@@ -222,6 +206,24 @@ class WaterEjectorProvider extends ChangeNotifier {
         notifyListeners();
       }
     });
+
+    notifyListeners();
+
+    HapticFeedback.heavyImpact();
+    unawaited(refreshMediaVolume());
+    unawaited(_setKeepScreenOn(true));
+
+    if (_enablePlatformAudio && _audioPlayer != null) {
+      try {
+        final Uint8List wavBytes =
+            SoundGenerator.getEjectWavBytes(_selectedMode);
+        await _audioPlayer!.setReleaseMode(ReleaseMode.loop);
+        await _audioPlayer!.setVolume(1.0);
+        await _audioPlayer!.play(BytesSource(wavBytes, mimeType: 'audio/wav'));
+      } catch (e) {
+        debugPrint('Không thể phát sóng âm đẩy nước: $e');
+      }
+    }
   }
 
   /// Xử lý khi hoàn tất 100% chu trình đẩy nước -> dừng loa & gọi callback bung Interstitial Ad
@@ -236,7 +238,7 @@ class WaterEjectorProvider extends ChangeNotifier {
         await _audioPlayer!.stop();
       } catch (_) {}
     }
-    await _setKeepScreenOn(false);
+    unawaited(_setKeepScreenOn(false));
     HapticFeedback.mediumImpact();
     notifyListeners();
 
@@ -260,7 +262,7 @@ class WaterEjectorProvider extends ChangeNotifier {
         await _audioPlayer!.stop();
       } catch (_) {}
     }
-    await _setKeepScreenOn(false);
+    unawaited(_setKeepScreenOn(false));
 
     if (wasRunning) {
       HapticFeedback.selectionClick();
