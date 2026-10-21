@@ -43,4 +43,4 @@ Import `android-app` into Android Studio and use **Build > Generate Signed Bundl
 
 ### GitHub build
 
-`.github/workflows/android-build.yml` builds only the three signed debug APKs for device testing, so no unsigned APK is uploaded. They are installable but are not suitable for store submission; configure a private release keystore and signing secrets separately before distribution. A parallel Windows job uploads `physics-draw-windows.zip`, a portable HTML package with `Run-Physics-Draw.bat`; it is not a native `.exe` and requires the CDN network assets.
+`.github/workflows/android-build.yml` always builds the three signed debug APKs for testing. If all four signing secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) exist, it also signs and uploads the three release APKs; otherwise it skips release rather than uploading an unsigned APK. A parallel Windows job uploads `physics-draw-windows.zip`, a portable HTML package with `Run-Physics-Draw.bat`; it is not a native `.exe` and requires the CDN network assets.

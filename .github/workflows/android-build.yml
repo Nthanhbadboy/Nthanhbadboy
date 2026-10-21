@@ -2,66 +2,191 @@ name: Build Release and Windows Packages
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - arena/667974da-nthanhbadboy
+      - main
+      - master
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
-  build-all:
+  build-android:
+    name: Build signed Huawei, Amazon, and Samsung APKs
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
     steps:
-      - name: Checkout Repository
+      - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Locate preinstalled Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          sdkmanager_path="$(find "$sdk_root" -type f -name sdkmanager -print -quit 2>/dev/null || true)"
+          test -n "$sdkmanager_path"
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk_root" >> "$GITHUB_ENV"
+          echo "$(dirname "$sdkmanager_path")" >> "$GITHUB_PATH"
+          echo "$sdk_root/platform-tools" >> "$GITHUB_PATH"
+          "$sdkmanager_path" --version
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
         with:
-          node-version: '18'
+          gradle-version: '8.7'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Generate Release Keystore
+      - name: Resolve release keystore
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          keytool -genkey -v -keystore release-key.jks -keyalg RSA -keysize 2048 -validity 10000 \
-          -alias physicsdraw -passin pass:android -passout pass:android \
-          -dname "CN=Physics Draw, OU=Dev, O=Nthanh, L=Haiphong, C=VN"
+          set -euo pipefail
+          store_file="$GITHUB_WORKSPACE/android-app/release.keystore"
 
-      - name: Build Android Release APKs
-        working-directory: ./android-app
+          if [[ -n "${KEYSTORE_BASE64:-}" && -n "${KEYSTORE_PASSWORD:-}" && -n "${KEY_ALIAS:-}" && -n "${KEY_PASSWORD:-}" ]]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$store_file"
+            echo 'mode=repository-secret' >> "$GITHUB_OUTPUT"
+            echo 'A repository release keystore was found and will be used.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            # This keeps CI from ever uploading an unsigned APK. It is a
+            # temporary CI key, not a production AppGallery/Amazon signing key.
+            KEYSTORE_PASSWORD='android'
+            KEY_ALIAS='physicsdraw'
+            KEY_PASSWORD='android'
+            keytool -genkeypair -v \
+              -keystore "$store_file" \
+              -storetype JKS \
+              -storepass "$KEYSTORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Physics Draw CI, OU=Build, O=Nthanhbadboy, L=Haiphong, C=VN"
+            echo 'mode=temporary-ci-key' >> "$GITHUB_OUTPUT"
+            echo 'No repository keystore secrets were available; a temporary CI signing key was generated. This APK is signed but is not suitable as a production update key.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          {
+            echo "ANDROID_RELEASE_STORE_FILE=$store_file"
+            echo "ANDROID_RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "ANDROID_RELEASE_KEY_ALIAS=$KEY_ALIAS"
+            echo "ANDROID_RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed release APKs
         run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease
-          
-          cd app/build/outputs/apk/release/
-          for apk in *.apk; do
-            if [ -f "$apk" ]; then
-              filename=$(basename "$apk" .apk)
-              jarsigner -keystore ../../../../../release-key.jks -storepass android -keypass android "$apk" physicsdraw
-              mv "$apk" "../../../../../physics-draw-${filename}-release-signed.apk"
-            fi
+          gradle --no-daemon -p android-app \
+            assembleHuaweiRelease \
+            assembleAmazonRelease \
+            assembleSamsungRelease
+
+      - name: Collect and verify signed APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          apksigner="$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner"
+
+          for flavor in huawei amazon samsung; do
+            apk="$(find android-app/app/build/outputs/apk -type f -iname "*${flavor}*release*.apk" ! -iname '*unsigned*' | head -n 1)"
+            test -n "$apk"
+            "$apksigner" verify --verbose "$apk" >/dev/null
+            cp "$apk" "artifacts/physics-draw-${flavor}-release-signed.apk"
           done
 
-      - name: Build Windows Package
-        run: |
-          mkdir -p windows-build/assets
-          cp -r android-app/app/src/main/assets/* windows-build/assets/
-          cd windows-build
-          zip -r ../physics-draw-windows-portable.zip .
+          sha256sum artifacts/*.apk | tee artifacts/SHA256SUMS.txt
 
-      - name: Upload Release APK Artifacts
+      - name: Upload signed release APKs
         uses: actions/upload-artifact@v4
         with:
           name: physics-draw-release-apks
-          path: physics-draw-*-release-signed.apk
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
 
-      - name: Upload Windows Artifact
+      - name: Remove temporary keystore
+        if: always()
+        shell: bash
+        run: rm -f android-app/release.keystore
+
+      - name: Remove stale game artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set +e
+          current_run="${{ github.run_id }}"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select((.name == \"physics-draw-release-apks\" or .name == \"physics-draw-apks\" or .name == \"physics-draw-windows-package\" or .name == \"physics-draw-windows\") and .workflow_run.id != ${current_run}) | .id" \
+            | while read -r artifact_id; do
+                test -z "$artifact_id" || gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+              done
+
+  package-windows:
+    name: Package portable Windows web build
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Create portable package
+        shell: pwsh
+        run: |
+          $package = "windows-package"
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Copy-Item "index.html" "$package/index.html"
+
+          @'
+          @echo off
+          setlocal
+          where py >nul 2>nul
+          if %ERRORLEVEL% EQU 0 (
+            start "Physics Draw server" cmd /c "py -m http.server 4173"
+            timeout /t 1 /nobreak >nul
+            start "Physics Draw" http://127.0.0.1:4173/index.html
+          ) else (
+            start "Physics Draw" index.html
+          )
+          '@ | Set-Content -Encoding ASCII "$package/Run-Physics-Draw.bat"
+
+          @'
+          Physics Draw portable Windows package
+          Double-click Run-Physics-Draw.bat to start the game.
+          Python 3 is recommended so the game runs from a local HTTP server;
+          otherwise the launcher opens index.html directly in the default browser.
+          An internet connection is required for the Matter.js and font CDN assets.
+          '@ | Set-Content -Encoding UTF8 "$package/README.txt"
+
+          Compress-Archive -Path "$package/*" -DestinationPath "physics-draw-windows.zip" -Force
+
+      - name: Upload Windows package
         uses: actions/upload-artifact@v4
         with:
           name: physics-draw-windows-package
-          path: physics-draw-windows-portable.zip
+          path: physics-draw-windows.zip
+          if-no-files-found: error
+          retention-days: 30

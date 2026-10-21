@@ -2,6 +2,14 @@ plugins {
     id "com.android.application"
 }
 
+// Release signing is opt-in. CI supplies these values from GitHub Actions
+// secrets; no keystore or password is committed to the repository.
+def releaseStoreFilePath = System.getenv("ANDROID_RELEASE_STORE_FILE")
+def releaseStorePassword = System.getenv("ANDROID_RELEASE_STORE_PASSWORD")
+def releaseKeyAlias = System.getenv("ANDROID_RELEASE_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ANDROID_RELEASE_KEY_PASSWORD")
+def releaseSigningReady = [releaseStoreFilePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { value -> value != null && !value.trim().isEmpty() }
+
 android {
     namespace "com.doodle.physics.draw"
     compileSdk 35
@@ -41,6 +49,17 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseStoreFilePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
@@ -50,6 +69,9 @@ android {
             minifyEnabled false
             shrinkResources false
             debuggable false
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
