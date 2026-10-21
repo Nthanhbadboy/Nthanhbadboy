@@ -429,6 +429,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: <Widget>[
                 const Text(
                   'Water Ejector',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -438,6 +440,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Text(
                   'Speaker Cleaner • 165Hz Acoustic DSP',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: const Color(0xFF80D8FF).withValues(alpha: 0.85),
                     fontSize: 11.5,
@@ -738,33 +742,45 @@ class _HomeScreenState extends State<HomeScreen> {
             }).toList(),
           ),
           const SizedBox(height: 14),
-          Row(
+          const Row(
             children: <Widget>[
-              const Icon(
+              Icon(
                 Icons.timer_outlined,
                 color: Color(0xFF80D8FF),
                 size: 18,
               ),
-              const SizedBox(width: 6),
-              const Text(
-                'Thời gian chu trình:',
-                style: TextStyle(
-                  color: Color(0xFFB0C4DE),
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
+              SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Thời gian đếm ngược chu trình',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Color(0xFFB0C4DE),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              const Spacer(),
-              _buildDurationChip(
-                ejector: ejector,
-                seconds: 30,
-                label: '30 Giây',
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _buildDurationChip(
+                  ejector: ejector,
+                  seconds: 30,
+                  label: '30 Giây',
+                ),
               ),
-              const SizedBox(width: 8),
-              _buildDurationChip(
-                ejector: ejector,
-                seconds: 60,
-                label: '1 Phút',
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildDurationChip(
+                  ejector: ejector,
+                  seconds: 60,
+                  label: '1 Phút',
+                ),
               ),
             ],
           ),
@@ -779,23 +795,33 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
   }) {
     final bool selected = ejector.selectedDurationSeconds == seconds;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: ejector.isEjecting ? null : (_) => ejector.selectDuration(seconds),
-      selectedColor: const Color(0xFF00E5FF),
-      backgroundColor: const Color(0xFF132546),
-      labelStyle: TextStyle(
-        color: selected ? const Color(0xFF041428) : Colors.white,
-        fontWeight: FontWeight.w700,
-        fontSize: 12,
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: ejector.isEjecting ? null : () => ejector.selectDuration(seconds),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF00E5FF) : const Color(0xFF132546),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF00E5FF)
+                : Colors.white.withValues(alpha: 0.10),
+          ),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: selected ? const Color(0xFF041428) : Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 12.5,
+          ),
+        ),
       ),
-      side: BorderSide(
-        color: selected
-            ? const Color(0xFF00E5FF)
-            : Colors.white.withValues(alpha: 0.10),
-      ),
-      visualDensity: VisualDensity.compact,
     );
   }
 
@@ -922,6 +948,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 6),
                         Text(
                           type.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,

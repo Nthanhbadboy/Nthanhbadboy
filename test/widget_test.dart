@@ -62,15 +62,18 @@ void main() {
     expect(find.text('Test Beep'), findsOneWidget);
 
     // Chuyển thời lượng sang 1 Phút (01:00) rồi quay về 30 Giây (00:30)
+    await tester.ensureVisible(find.text('1 Phút'));
     await tester.tap(find.text('1 Phút'));
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('01:00'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('30 Giây'));
     await tester.tap(find.text('30 Giây'));
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('00:30'), findsOneWidget);
 
     // Kích hoạt đẩy nước 30 giây và kiểm tra đếm ngược + hoàn tất chu trình
+    await tester.ensureVisible(find.text('KÍCH HOẠT ĐẨY NƯỚC NGAY'));
     await tester.tap(find.text('KÍCH HOẠT ĐẨY NƯỚC NGAY'));
     await tester.pump(const Duration(seconds: 15));
     expect(find.text('00:15'), findsOneWidget);
@@ -94,6 +97,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 200));
 
+      await tester.ensureVisible(find.text('KÍCH HOẠT ĐẨY NƯỚC NGAY'));
       await tester.tap(find.text('KÍCH HOẠT ĐẨY NƯỚC NGAY'));
       await tester.pump(const Duration(seconds: 31));
       await tester.pump(const Duration(milliseconds: 200));
