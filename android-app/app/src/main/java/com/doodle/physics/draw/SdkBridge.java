@@ -74,7 +74,9 @@ public final class SdkBridge {
 
             if ("iap".equals(module) && "purchase".equals(action)) {
                 String productId = message.optString("productId", "");
-                storeAdapter.purchase(productId, () -> dispatchPurchaseResult(productId, true));
+                storeAdapter.purchase(productId,
+                        () -> dispatchPurchaseResult(productId, true),
+                        () -> dispatchPurchaseResult(productId, false));
                 return;
             }
 
@@ -115,7 +117,7 @@ public final class SdkBridge {
         void showBanner(String adUnitId);
         void showInterstitial(String adUnitId, Runnable onClosed);
         void showRewarded(String adUnitId, Runnable onRewarded);
-        void purchase(String productId, Runnable onSuccess);
+        void purchase(String productId, Runnable onSuccess, Runnable onFailure);
         void destroy();
     }
 
@@ -154,9 +156,9 @@ public final class SdkBridge {
         }
 
         @Override
-        public void purchase(String productId, Runnable onSuccess) {
-            Log.d(TAG, "IAP requested by " + provider + ": " + productId);
-            handler.postDelayed(onSuccess, 350L);
+        public void purchase(String productId, Runnable onSuccess, Runnable onFailure) {
+            Log.w(TAG, "IAP is disabled until a real " + provider + " billing adapter is installed: " + productId);
+            handler.postDelayed(onFailure, 350L);
         }
 
         @Override

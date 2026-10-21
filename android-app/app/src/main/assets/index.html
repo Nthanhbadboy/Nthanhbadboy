@@ -588,6 +588,9 @@
       const BASE_W = 400;
       const BASE_H = 650;
       const BALL_RADIUS = 13;
+      // Store-safe release mode: monetization stays disabled until real Ads/IAP
+      // SDKs and verified product configuration are added per storefront.
+      const MONETIZATION_ENABLED = false;
       const NATIVE_PROVIDER = (window.SDKBridge && typeof window.SDKBridge.getProvider === 'function')
         ? window.SDKBridge.getProvider()
         : 'browser';
@@ -852,7 +855,7 @@
 
       function setupBanner() {
         const container = $('#hms-banner-container');
-        if (state.removeAds) { container.style.display = 'none'; return; }
+        if (!MONETIZATION_ENABLED || state.removeAds) { container.style.display = 'none'; return; }
         const nativeBanner = postToNative({ module: 'ads', action: 'show_banner', adUnitId: AD_UNITS.banner, containerId: 'hms-banner-container' });
         if (!nativeBanner) $('#banner-text').textContent = t('bannerMock');
       }
@@ -890,6 +893,7 @@
       }
 
       function showAd(type, callback) {
+        if (!MONETIZATION_ENABLED) { callback(false, type); return; }
         if (type !== 'rewarded' && state.removeAds) { callback(true, type); return; }
         if (!callNativeAd(type, callback)) openMockAd(type, callback);
       }
@@ -908,9 +912,10 @@
       }
 
       function purchase(sku) {
+        if (!MONETIZATION_ENABLED) { showToast(t('shopUnavailable')); return; }
         const completed = (success = true) => { if (success) grantPurchase(sku); };
         if (!callNativePurchase(sku, completed)) {
-          // A deterministic browser mock stands in for an AppGallery purchase.
+          // Browser fallback is intentionally unreachable in store-safe mode.
           window.setTimeout(() => { grantPurchase(sku); showToast(t('purchaseMock')); }, 550);
         }
       }
@@ -1351,7 +1356,9 @@
         $('#play-icon').className = phase === 'running' ? 'fa-solid fa-stop' : (phase === 'ready' ? 'fa-solid fa-play' : 'fa-solid fa-rotate-right');
         $('#draw-prompt').classList.toggle('hidden', phase !== 'ready');
         $('#shop-noads').classList.toggle('owned', state.removeAds);
-        $('#hms-banner-container').style.display = state.removeAds ? 'none' : 'flex';
+        $('#btn-shop').style.display = MONETIZATION_ENABLED ? '' : 'none';
+        $('#btn-skip').style.display = MONETIZATION_ENABLED ? '' : 'none';
+        $('#hms-banner-container').style.display = MONETIZATION_ENABLED && !state.removeAds ? 'flex' : 'none';
       }
 
       function applyTranslations() {
@@ -1394,7 +1401,7 @@
         if (phase !== 'ready') { showToast(t('lineReady')); return; }
         if (state.hints <= 0) {
           showToast(t('noHints'));
-          showAd('rewarded', (success) => { if (success) { state.hints += 3; saveState(); updateUI(); showToast(t('rewarded')); } });
+          if (MONETIZATION_ENABLED) showAd('rewarded', (success) => { if (success) { state.hints += 3; saveState(); updateUI(); showToast(t('rewarded')); } });
           return;
         }
         state.hints -= 1; state.hintsUsed += 1; hintVisible = true; saveState(); updateUI(); showToast(t('hintShown')); playTone(660, .08);

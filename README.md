@@ -12,6 +12,7 @@ python3 -m http.server 4173
 
 The game includes:
 
+- Store-safe free mode: Ads and IAP UI are disabled until real provider SDKs and verified products are configured.
 - 100 deterministic, extensible level definitions in `index.html`.
 - Matter.js line bodies, gravity, cup sensor collision detection, hazards, win/fail states, and a line-length budget.
 - Responsive notebook UI with level picker, shop, result, and browser ad-simulation modals.
@@ -39,7 +40,9 @@ gradle -p android-app assembleAmazonDebug
 gradle -p android-app assembleSamsungDebug
 ```
 
-Import `android-app` into Android Studio and use **Build > Generate Signed Bundle / APK** for a signed release. The source is dependency-free on purpose: `SdkBridge.java` contains the provider-neutral JSON contract and a build-safe `DemoStoreAdapter`. Replace that adapter with the official Huawei Ads/IAP, Amazon Ads/APS, or approved Samsung/AdMob implementation before publishing; do not ship the demo callback adapter as a monetized production integration. The selected flavor is exposed through `BuildConfig.STORE_PROVIDER`; the page selects Huawei test units, Google Android test units for Samsung/AdMob, or Amazon placeholders through `AD_UNITS_BY_PROVIDER`. Replace the Amazon placeholders and connect the official native SDK before publishing.
+Import `android-app` into Android Studio and use **Build > Generate Signed Bundle / APK** for a signed release. The source is dependency-free on purpose: `SdkBridge.java` contains the provider-neutral JSON contract and a build-safe `DemoStoreAdapter`. Replace that adapter with the official Huawei Ads/IAP, Amazon Ads/APS, or approved Samsung/AdMob implementation before publishing; do not ship the demo callback adapter as a monetized production integration. The selected flavor is exposed through `BuildConfig.STORE_PROVIDER`; the page selects Huawei test units, Google Android test units for Samsung/AdMob, or Amazon placeholders through `AD_UNITS_BY_PROVIDER`. Monetization is currently disabled in the release-safe build; connect the official native SDK and verified products before enabling it.
+
+See [`SIGNING.md`](SIGNING.md) for permanent release-keystore setup and GitHub Actions secrets.
 
 ### GitHub build
 
