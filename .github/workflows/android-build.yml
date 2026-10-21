@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   build-apks:
@@ -75,6 +76,19 @@ jobs:
           path: artifacts/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Remove stale APK and Windows artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set +e
+          current_run="${{ github.run_id }}"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select((.name == \"physics-draw-apks\" or .name == \"physics-draw-windows\") and .workflow_run.id != ${current_run}) | .id" \
+            | while read -r artifact_id; do
+                test -z "$artifact_id" || gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+              done
 
   package-windows:
     name: Package portable Windows web build
