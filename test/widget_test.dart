@@ -54,6 +54,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Water Ejector'), findsOneWidget);
+    expect(find.byType(Image), findsWidgets);
     expect(find.text('00:30'), findsOneWidget);
     expect(find.text('Standard 165Hz'), findsOneWidget);
     expect(find.text('100–200Hz Sweep'), findsOneWidget);

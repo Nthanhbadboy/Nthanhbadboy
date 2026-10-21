@@ -2,8 +2,8 @@ name: water_ejector
 description: "Water Ejector: Speaker Cleaner - Multilingual (9 languages) 165Hz Speaker Cleaner & Audio Tester optimized for Huawei AppGallery with Huawei Petal Ads SDK."
 publish_to: 'none'
 
-# Phiên bản phát hành (versionName: 1.1.0, versionCode: 2)
-version: 1.1.0+2
+# Phiên bản phát hành (versionName: 1.1.1, versionCode: 3)
+version: 1.1.1+3
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -38,5 +38,6 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/icons/
     - assets/images/
     - assets/audio/
