@@ -11,6 +11,7 @@
 
     <application
         android:allowBackup="true"
+        tools:replace="android:allowBackup"
         android:hardwareAccelerated="true"
         android:icon="@drawable/physics_draw_icon"
         android:roundIcon="@drawable/physics_draw_icon"
