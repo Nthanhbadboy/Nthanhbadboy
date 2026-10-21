@@ -43,4 +43,4 @@ Import `android-app` into Android Studio and use **Build > Generate Signed Bundl
 
 ### GitHub build
 
-`.github/workflows/android-build.yml` builds all three unsigned release APKs plus signed debug APKs for device testing, then uploads them together as the `physics-draw-apks` artifact. The debug APKs are installable but are not suitable for store submission; configure a release keystore and signing secrets before distribution.
+`.github/workflows/android-build.yml` builds all three unsigned release APKs plus signed debug APKs for device testing, then uploads them together as the `physics-draw-apks` artifact. The debug APKs are installable but are not suitable for store submission; configure a release keystore and signing secrets before distribution. A parallel Windows job uploads `physics-draw-windows.zip`, a portable HTML package with `Run-Physics-Draw.bat`; it is not a native `.exe` and requires the CDN network assets.

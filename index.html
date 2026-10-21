@@ -1175,17 +1175,26 @@
         ctx.translate(cup.x, cup.y);
         ctx.lineWidth = 3;
         ctx.strokeStyle = '#273244';
-        ctx.fillStyle = '#ffd96b';
+        ctx.fillStyle = '#e63946';
         ctx.beginPath();
         ctx.moveTo(-cup.w / 2, 3);
         ctx.lineTo(cup.w / 2, 3);
         ctx.lineTo(cup.w / 2 - 6, cup.h - 5);
         ctx.quadraticCurveTo(0, cup.h + 7, -cup.w / 2 + 6, cup.h - 5);
         ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#f5b839';
+        ctx.fillStyle = '#b92335';
         ctx.beginPath(); ctx.ellipse(0, 4, cup.w / 2 - 1, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.strokeStyle = '#dc962d'; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#8f1d2c'; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.moveTo(-11, 12); ctx.lineTo(-8, cup.h - 5); ctx.moveTo(0, 12); ctx.lineTo(0, cup.h); ctx.moveTo(11, 12); ctx.lineTo(8, cup.h - 5); ctx.stroke();
+        // Make the objective unmistakable: a high-contrast doodle label points at the cup.
+        ctx.font = '900 13px "Short Stack", "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#fffdf5';
+        ctx.strokeText('▼ CUP ▼', 0, -8);
+        ctx.fillStyle = '#e63946';
+        ctx.fillText('▼ CUP ▼', 0, -8);
         ctx.restore();
       }
 
