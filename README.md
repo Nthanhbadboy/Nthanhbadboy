@@ -123,6 +123,35 @@ node scripts/verify-offline-page.mjs windows/build/index.html
 `scripts/build-windows.mjs` accepts `--out <dir>`, `--skip-exe` (offline page only),
 `--no-selftest` and `--keep-temp`. Outputs land in `windows-release/`, intermediates in
 `windows/build/`; both are git-ignored.
+### Store package (MSIX)
+
+The other Windows shape is a real window instead of a browser tab: `PhysicsDraw.exe` runs the same
+offline page inside WebView2 — the Edge engine built into Windows 11, and installed with Edge on
+Windows 10 — and is packed as `One-Line-Physics-Draw.msix`, ready for Partner Center.
+
+```text
+windows-release/
+├── One-Line-Physics-Draw.msix        <- the Store package (unsigned: the Store signs what it publishes)
+├── One-Line-Physics-Draw.msix.sha256
+├── msix-report.json
+└── store/                            the same payload, unpacked
+    ├── PhysicsDraw.exe               windowed WebView2 host, GUI subsystem, x86-64
+    ├── WebView2Loader.dll            Microsoft's x64 loader
+    ├── www/index.html                the same offline page, served from a private origin
+    └── Assets/*.png                  Store tiles and splash screen
+```
+
+```bash
+ZIG="python3 -m ziglang" node scripts/build-store.mjs
+```
+
+The WebView2 SDK header is about 3 MB of generated COM declarations, so it is not vendored:
+`scripts/fetch-webview2.mjs` downloads it at build time from the official NuGet package, or from a
+hash-pinned npm mirror when NuGet is unreachable, and checks it for the exact interfaces the host
+uses. Identity, publisher, tiles and versions live in the `msix` block of `windows/app.json`.
+Set the `MSIX_PUBLISHER` repository variable to your Partner Center publisher identity (`CN=…`)
+before uploading — the Store rejects a package whose publisher does not match the account.
+[`windows/README.md`](windows/README.md) documents the package internals, sideloading and signing.
 
 ### What every build verifies
 
@@ -139,10 +168,17 @@ node scripts/verify-offline-page.mjs windows/build/index.html
 - **Page checks (14 checks).** `scripts/verify-offline-page.mjs` boots the page in jsdom with a
   mocked canvas and asserts Matter.js is usable, no remote tag survived, the level picker lists
   all 100 levels, the Vietnamese UI applies, and the physics simulation steps without errors.
+- **MSIX checks.** `scripts/build-store.mjs` audits `PhysicsDraw.exe` (PE32+ x86-64, GUI subsystem,
+  no unexpected DLL imports, no CDN host inside), asserts every Store tile exists at exactly its
+  scale-200 size, then reopens the finished `.msix` and recomputes every block hash, `LfhSize`,
+  content type and manifest reference from the archive itself. CI repeats that verification with an
+  independent Python reader.
 
 ### Windows CI
 
 `.github/workflows/windows-build.yml` runs that whole pipeline on `ubuntu-latest` (no Windows
-runner and no secrets needed) and uploads the artifact **`physics-draw-windows`** — open the
-workflow run and download it from *Artifacts*. Pushes to `v*` tags also attach
-`Physics-Draw-Windows.zip` to the matching GitHub release with its SHA-256 sums.
+runner and no secrets needed) and uploads two artifacts — **`physics-draw-windows`** (the portable
+zip) and **`physics-draw-msix`** (the Store package with its payload and report). Open the workflow
+run and download them from *Artifacts*. Pushes to `v*` tags also attach
+`Physics-Draw-Windows.zip` and `One-Line-Physics-Draw.msix` to the matching GitHub release with
+their SHA-256 sums.

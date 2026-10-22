@@ -173,3 +173,234 @@ jobs:
             | while read -r artifact_id; do
                 test -z "$artifact_id" || gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
               done
+  build-msix:
+    name: Build the Microsoft Store package (MSIX)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install verification dependencies
+        run: npm ci
+
+      - name: Install the Zig cross-compiler
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/zig-venv"
+          "$RUNNER_TEMP/zig-venv/bin/pip" install --quiet --disable-pip-version-check "ziglang==$ZIG_VERSION"
+          echo "ZIG=$RUNNER_TEMP/zig-venv/bin/python -m ziglang" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/zig-venv/bin/python" -m ziglang version
+
+      - name: Build PhysicsDraw.exe and pack the unsigned MSIX
+        env:
+          # Optional repository variables; leave them unset to build with the placeholder
+          # publisher. The real value comes from Partner Center -> Account settings.
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_VERSION: ${{ vars.MSIX_VERSION }}
+        run: node scripts/build-store.mjs --out windows-release --keep-temp
+
+      - name: Re-verify the package with an independent reader
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, hashlib, json, pathlib, re, struct, sys, zipfile
+
+          report = json.loads(pathlib.Path('windows-release/msix-report.json').read_text())
+          path = pathlib.Path(report['package']['path'])
+          archive = zipfile.ZipFile(path)
+          if archive.testzip() is not None:
+              sys.exit('the MSIX archive is corrupt')
+          names = archive.namelist()
+          blockmap = archive.read('AppxBlockMap.xml').decode()
+          content_types = archive.read('[Content_Types].xml').decode()
+          manifest = archive.read('AppxManifest.xml').decode('utf-8-sig')
+
+          problems = []
+          mapped = set()
+          for match in re.finditer(
+              r'<File Name="([^"]+)" Size="(\d+)" LfhSize="(\d+)">([\s\S]*?)</File>', blockmap
+          ):
+              name, size, lfh, body = match.groups()
+              entry = name.replace('\\', '/')
+              mapped.add(entry)
+              data = archive.read(entry)
+              info = archive.getinfo(entry)
+              with open(path, 'rb') as handle:
+                  handle.seek(info.header_offset)
+                  header = handle.read(30)
+              name_len, extra_len = struct.unpack_from('<HH', header, 26)
+              if len(data) != int(size):
+                  problems.append(f'{entry}: size {len(data)} != block map {size}')
+              if 30 + name_len + extra_len != int(lfh):
+                  problems.append(f'{entry}: LfhSize {lfh} != actual {30 + name_len + extra_len}')
+              recorded = re.findall(r'<Block Hash="([^"]+)"', body)
+              recomputed = [
+                  base64.b64encode(hashlib.sha256(data[o:o + 65536]).digest()).decode()
+                  for o in range(0, len(data), 65536)
+              ]
+              if recorded != recomputed:
+                  problems.append(f'{entry}: block hashes differ from a fresh SHA-256 walk')
+              if data and not recomputed:
+                  problems.append(f'{entry}: no blocks recorded')
+
+          expected = set(names) - {'AppxBlockMap.xml', '[Content_Types].xml'}
+          if mapped != expected:
+              problems.append(f'block map covers {sorted(mapped)}, archive has {sorted(expected)}')
+
+          defaults = set(re.findall(r'<Default Extension="([^"]+)"', content_types))
+          overrides = set(re.findall(r'<Override PartName="([^"]+)"', content_types))
+          for name in names:
+              if name == '[Content_Types].xml':
+                  continue
+              extension = name.rsplit('.', 1)[-1].lower()
+              if extension not in defaults and f'/{name}' not in overrides:
+                  problems.append(f'{name}: no content type')
+
+          identity = re.search(r'<Identity\s+([^>]+)/>', manifest).group(1)
+          attributes = dict(re.findall(r'(\w+)="([^"]*)"', identity))
+          version = attributes['Version'].split('.')
+          if len(version) != 4 or version[3] != '0':
+              problems.append(f"Version {attributes['Version']} must be a.b.c.0 for the Store")
+          if not attributes['Publisher'].startswith('CN='):
+              problems.append('Publisher must start with CN=')
+          for required in (
+              'EntryPoint="Windows.FullTrustApplication"',
+              '<rescap:Capability Name="runFullTrust" />',
+              'Executable="PhysicsDraw.exe"',
+          ):
+              if required not in manifest:
+                  problems.append(f'manifest is missing {required}')
+          for reference in re.findall(
+              r'(?:Logo|Square150x150Logo|Square44x44Logo|Wide310x150Logo|Image)="([^"]+)"', manifest
+          ):
+              stem = reference.replace('\\', '/').replace('.png', '')
+              if not any(n == reference.replace('\\', '/') or n.startswith(f'{stem}.scale-') for n in names):
+                  problems.append(f'manifest references {reference}, which is not packaged')
+
+          data = archive.read('PhysicsDraw.exe')
+          pe = int.from_bytes(data[0x3c:0x40], 'little')
+          if data[:2] != b'MZ' or data[pe:pe + 4] != b'PE\0\0':
+              problems.append('PhysicsDraw.exe is not a PE image')
+          if int.from_bytes(data[pe + 4:pe + 6], 'little') != 0x8664:
+              problems.append('PhysicsDraw.exe is not x86-64')
+          if int.from_bytes(data[pe + 24 + 68:pe + 24 + 70], 'little') != 2:
+              problems.append('PhysicsDraw.exe is not a GUI-subsystem application')
+          page = archive.read('www/index.html').decode()
+          for host in ('cdnjs.cloudflare.com', 'fonts.googleapis.com', 'jsdelivr.net', 'unpkg.com'):
+              for blob_name, blob in (('PhysicsDraw.exe', data), ('www/index.html', page.encode())):
+                  if host.encode() in blob:
+                      problems.append(f'{blob_name} still references {host}')
+          if any(n.endswith('.pdb') for n in names):
+              problems.append('the package contains debug symbols')
+
+          for problem in problems:
+              print(f'::error::{problem}')
+          if problems:
+              sys.exit(f'{len(problems)} MSIX verification problem(s)')
+          print(f'{path.name}: {len(names)} parts, {path.stat().st_size:,} bytes, block map and manifest verified')
+          PY
+
+      - name: Boot the packaged page in a headless DOM
+        run: node scripts/verify-offline-page.mjs windows-release/store/www/index.html
+
+      - name: Write the job summary
+        run: |
+          set -euo pipefail
+          {
+            echo "## Microsoft Store package (MSIX)"
+            echo
+            echo "| Item | Value |"
+            echo "| --- | --- |"
+            python3 - <<'PY'
+          import json
+          report = json.load(open('windows-release/msix-report.json'))
+          package = report['package']
+          print(f"| Package | `{package['file']}` ({package['bytes']:,} bytes) |")
+          print(f"| Identity | `{package['identityName']}` |")
+          print(f"| Publisher | `{package['publisher']}` |")
+          print(f"| Version | {package['version']} |")
+          print(f"| Target | Windows.Desktop {package['minVersion']} .. {package['maxVersionTested']} |")
+          print(f"| Executable | `PhysicsDraw.exe` ({report['executable']['bytes']:,} bytes, GUI subsystem, x86-64) |")
+          print(f"| WebView2 SDK | {report['webview2']['package']}@{report['webview2']['version']} via {report['webview2']['source']} |")
+          print(f"| SHA-256 | `{package['sha256']}` |")
+          print(f"| Signature | unsigned on purpose - Partner Center re-signs Store packages |")
+          for entry in package['entries']:
+              print(f"| part | `{entry}` |")
+          PY
+            echo
+            if python3 -c "import json,sys; sys.exit(0 if json.load(open('windows-release/msix-report.json'))['package']['publisherIsPlaceholder'] else 1)"; then
+              echo "> [!IMPORTANT]"
+              echo "> The publisher is still a placeholder. Before uploading to Partner Center, set the"
+              echo "> repository variable \`MSIX_PUBLISHER\` to your Store publisher identity (Partner Center"
+              echo "> -> Account settings -> Organization profile) and re-run this workflow."
+              echo
+            fi
+            echo "Upload \`One-Line-Physics-Draw.msix\` from the **physics-draw-msix** artifact to"
+            echo "Partner Center, or sideload it locally after signing it with a certificate whose"
+            echo "subject matches the manifest publisher."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          {
+            echo "### Microsoft Store package"
+            echo
+            echo "\`One-Line-Physics-Draw.msix\` is the windowed WebView2 build: it opens in its own"
+            echo "window instead of a browser tab, keeps its own profile, and is ready to upload to"
+            echo "Partner Center (unsigned, because the Store signs what it publishes)."
+            echo
+            echo '```text'
+            cat "windows-release/One-Line-Physics-Draw.msix.sha256"
+            echo '```'
+          } > windows-release/MSIX-RELEASE-NOTES.md
+
+      - name: Upload the MSIX package
+        uses: actions/upload-artifact@v4
+        with:
+          name: physics-draw-msix
+          path: |
+            windows-release/One-Line-Physics-Draw.msix
+            windows-release/One-Line-Physics-Draw.msix.sha256
+            windows-release/msix-report.json
+            windows-release/store/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach the MSIX package to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" \
+            --title "One-Line Physics Draw $tag" \
+            --notes-file windows-release/MSIX-RELEASE-NOTES.md \
+            --target "$GITHUB_SHA" || true
+          gh release upload "$tag" windows-release/One-Line-Physics-Draw.msix --clobber
+
+      - name: Remove stale MSIX artifacts
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select(.name == \"physics-draw-msix\" and .workflow_run.id != ${GITHUB_RUN_ID}) | .id" \
+            | while read -r artifact_id; do
+                test -z "$artifact_id" || gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+              done

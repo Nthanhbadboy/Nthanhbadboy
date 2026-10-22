@@ -10,5 +10,37 @@
   "windowsLibraries": ["ws2_32", "shell32"],
   "selfTestTarget": "native",
   "minimumExecutableBytes": 200000,
-  "maximumExecutableBytes": 20000000
+  "maximumExecutableBytes": 20000000,
+  "msix": {
+    "packageFile": "One-Line-Physics-Draw.msix",
+    "payloadDir": "store",
+    "binaryName": "PhysicsDraw.exe",
+    "applicationId": "PhysicsDraw",
+    "sourceFile": "windows/webview2-host.cpp",
+    "iconFile": "windows/app.ico",
+    "manifestFile": "windows/app.manifest",
+    "assetsDir": "windows/msix-assets",
+    "windowsLibraries": ["ole32", "user32", "shell32"],
+    "allowedImports": [
+      "kernel32.dll",
+      "user32.dll",
+      "gdi32.dll",
+      "shell32.dll",
+      "ole32.dll",
+      "advapi32.dll",
+      "msvcrt.dll"
+    ],
+    "identityName": "Nthanhbadboy.OneLinePhysicsDraw",
+    "publisher": "CN=REPLACE_WITH_STORE_PUBLISHER_ID",
+    "publisherDisplayName": "Nthanhbadboy",
+    "displayName": "One-Line Physics Draw",
+    "description": "Draw a single line of ink, press PLAY, and let physics finish the puzzle: your stroke becomes a ramp, a bridge or a seesaw that rolls the ball into the cup. 100 hand-made levels, no ads, no accounts, and the whole game ships inside the package so it works with the network turned off.",
+    "shortDescription": "Draw one line, press PLAY, roll the ball into the cup.",
+    "packageVersion": "1.0.0.0",
+    "minVersion": "10.0.17763.0",
+    "maxVersionTested": "10.0.22621.0",
+    "backgroundColor": "#f7f0d8",
+    "virtualHost": "physicsdraw.local",
+    "languages": ["en-US"]
+  }
 }
