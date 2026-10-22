@@ -55,13 +55,14 @@ function parseArgs(argv) {
   const options = {
     out: join(REPO_ROOT, 'windows-release'),
     publisher: process.env.MSIX_PUBLISHER ?? null,
+    publisherDisplayName: process.env.MSIX_PUBLISHER_DISPLAY_NAME ?? null,
     identityName: process.env.MSIX_IDENTITY_NAME ?? null,
     version: process.env.MSIX_VERSION ?? null,
     quiet: false,
     keepTemp: false,
     forceWebview2: false,
   };
-  const valued = ['out', 'publisher', 'identity-name', 'version'];
+  const valued = ['out', 'publisher', 'publisher-display-name', 'identity-name', 'version'];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const eq = arg.indexOf('=');
@@ -478,7 +479,16 @@ function collectPayload({ config, workDir, exePath, webview2 }) {
     if (!/\.png$/i.test(name)) fail(`unexpected file in ${config.msix.assetsDir}: ${name}`);
     add(`Assets/${name}`, full);
   }
+  // Partner Center resolves manifest logo references literally: a hand-packed MSIX has no
+  // resources.pri, so `Assets\Square44x44Logo.png` must exist as a file, not merely as the
+  // scale-200 sibling. The base-size files are what validation reads; the scale-200 ones are
+  // what high-DPI Start menu tiles can use.
   for (const required of [
+    'Square44x44Logo.png',
+    'Square150x150Logo.png',
+    'Wide310x150Logo.png',
+    'StoreLogo.png',
+    'SplashScreen.png',
     'Square44x44Logo.scale-200.png',
     'Square150x150Logo.scale-200.png',
     'Wide310x150Logo.scale-200.png',
@@ -494,7 +504,14 @@ function collectPayload({ config, workDir, exePath, webview2 }) {
 
 /** Verify the PNG dimensions the Store validates against the declared scale. */
 function auditAssets(payload) {
+  // Unqualified names mean scale-100 to the validator, so their pixels must be the base size;
+  // the `.scale-200` files must be exactly twice it.
   const expected = {
+    'Assets/Square44x44Logo.png': [44, 44],
+    'Assets/Square150x150Logo.png': [150, 150],
+    'Assets/Wide310x150Logo.png': [310, 150],
+    'Assets/StoreLogo.png': [50, 50],
+    'Assets/SplashScreen.png': [620, 300],
     'Assets/Square44x44Logo.scale-200.png': [88, 88],
     'Assets/Square150x150Logo.scale-200.png': [300, 300],
     'Assets/Wide310x150Logo.scale-200.png': [620, 300],
@@ -677,6 +694,7 @@ async function main() {
         '',
         '  --out <dir>            output directory (default: windows-release)',
         '  --publisher "CN=..."   override the package publisher from windows/app.json',
+        '  --publisher-display-name <name>  must equal your Partner Center display name',
         '  --identity-name <name> override the package identity name',
         '  --version <a.b.c.0>    override the package version',
         '  --skip-exe             reuse an already compiled PhysicsDraw.exe in the work dir',
@@ -694,6 +712,7 @@ async function main() {
   const config = JSON.parse(readFileSync(join(REPO_ROOT, 'windows', 'app.json'), 'utf8'));
   if (!config.msix) fail('windows/app.json has no "msix" section');
   if (options.publisher) config.msix.publisher = options.publisher;
+  if (options.publisherDisplayName) config.msix.publisherDisplayName = options.publisherDisplayName;
   if (options.identityName) config.msix.identityName = options.identityName;
   if (options.version) config.msix.packageVersion = options.version;
 

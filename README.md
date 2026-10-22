@@ -179,8 +179,9 @@ before uploading — the Store rejects a package whose publisher does not match 
   mocked canvas and asserts Matter.js is usable, no remote tag survived, the level picker lists
   all 100 levels, the Vietnamese UI applies, and the physics simulation steps without errors.
 - **MSIX checks.** `scripts/build-store.mjs` audits `PhysicsDraw.exe` (PE32+ x86-64, GUI subsystem,
-  no unexpected DLL imports, no CDN host inside), asserts every Store tile exists at exactly its
-  scale-200 size, then reopens the finished `.msix` and recomputes every block hash, `LfhSize`,
+  no unexpected DLL imports, no CDN host inside), asserts every logo exists under the exact name
+  the manifest references, at both its base and scale-200 size, then reopens the finished `.msix`
+  and recomputes every block hash, `LfhSize`,
   content type and manifest reference from the archive itself. CI repeats that verification with an
   independent Python reader.
 

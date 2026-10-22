@@ -10,7 +10,7 @@ windows/
 ├── app.json              name, version, port, zip layout, MSIX identity, PE sanity bounds
 ├── app.ico               icon embedded in PhysicsDraw.exe (16…256 px)
 ├── app.manifest          DPI awareness / asInvoker manifest embedded in PhysicsDraw.exe
-├── msix-assets/          Store tiles and splash screen, all scale-200
+├── msix-assets/          Store tiles + splash: base size (validated) and .scale-200 (hi-dpi)
 ├── package-README.txt    the bilingual quick start that ships inside the zip
 ├── build/                generated: offline index.html, generated_assets.h, WebView2 SDK, staged binaries
 └── ...
@@ -99,7 +99,8 @@ windows-release/store/                              the same payload, unpacked f
 ├── PhysicsDraw.exe
 ├── WebView2Loader.dll
 ├── www/index.html
-└── Assets/{Square44x44Logo,Square150x150Logo,Wide310x150Logo,StoreLogo,SplashScreen}.scale-200.png
+├── Assets/{Square44x44Logo,Square150x150Logo,Wide310x150Logo,StoreLogo,SplashScreen}.png
+└── Assets/<the same five>.scale-200.png
 ```
 
 Flags: `--out <dir>`, `--publisher "CN=..."`, `--identity-name <name>`, `--version <a.b.c.0>`,
@@ -129,7 +130,12 @@ header: no IID is ever copied by hand.
 `AppxManifest.xml` declares a full-trust desktop app: `EntryPoint="Windows.FullTrustApplication"`,
 the `runFullTrust` restricted capability, `TargetDeviceFamily Windows.Desktop` from 10.0.17763.0,
 and the tiles in `windows/msix-assets/`. Identity, publisher, display name, description and
-versions all come from the `msix` block of `windows/app.json`.
+versions all come from the `msix` block of `windows/app.json`; the publisher display name must
+equal the Partner Center account name character for character, or validation rejects the package.
+
+Each tile ships twice in `windows/msix-assets/`: the unqualified base-size file, which is what
+Partner Center's acceptance validation looks for when it reads the manifest, and the `.scale-200`
+sibling at double the pixels, which high-DPI Start menu tiles can use.
 
 `AppxBlockMap.xml` follows the shape Microsoft's own packer (`microsoft/msix-packaging`) emits:
 windows separators in `Name`, one base64 SHA-256 per 64 KiB of *uncompressed* data, `Size` =
@@ -179,7 +185,9 @@ Every build runs these checks and stops on the first failure:
 
 The MSIX build adds its own checks before it writes a package: the executable must be a PE32+
 x86-64 **GUI** image importing nothing beyond `ole32`/`user32`/`shell32`/`kernel32` and the UCRT;
-every tile must exist at exactly the scale-200 dimensions the Store validates; and the finished
+every logo must exist under the exact unqualified name the manifest references, at exactly its base
+and scale-200 dimensions — Partner Center resolves those references literally, because a
+hand-packed MSIX has no `resources.pri` to map logical names onto qualified files; and the finished
 `.msix` is reopened and re-derived — block hashes, `LfhSize` values, content-type coverage,
 manifest identity and logo references, plus a byte comparison between the packaged exe and the
 compiled one. The packaged `www/index.html` is booted in jsdom like any other build.
