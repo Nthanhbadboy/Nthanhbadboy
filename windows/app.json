@@ -37,10 +37,10 @@
       "advapi32.dll",
       "msvcrt.dll"
     ],
-    "identityName": "Nthanhbadboy.OneLinePhysicsDraw",
-    "publisher": "CN=REPLACE_WITH_STORE_PUBLISHER_ID",
+    "identityName": "NGUYENMINHNTHHANH.52765D90C6EA8",
+    "publisher": "CN=961B31A3-7622-4C9D-B947-F4EC867B34CA",
     "publisherDisplayName": "NGUYEN MINH THANH",
-    "displayName": "One-Line Physics Draw",
+    "displayName": "Physics_Draw_Puzzle",
     "description": "Draw a single line of ink, press PLAY, and let physics finish the puzzle: your stroke becomes a ramp, a bridge or a seesaw that rolls the ball into the cup. 100 hand-made levels, no ads, no accounts, and the whole game ships inside the package so it works with the network turned off.",
     "shortDescription": "Draw one line, press PLAY, roll the ball into the cup.",
     "packageVersion": "1.0.0.0",

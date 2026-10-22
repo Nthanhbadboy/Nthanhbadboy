@@ -402,7 +402,7 @@ function compileHost({ config, workDir, webview2 }) {
     `-I${join(webview2.dir, 'include')}`,
     '-Iwindows/webview2',
     `-DAPP_VERSION="${config.version}"`,
-    `-DAPP_NAME="${config.name}"`,
+    `-DAPP_NAME="${config.msix.displayName}"`,
     `-o${exePath}`,
     config.msix.sourceFile,
     rcPath,

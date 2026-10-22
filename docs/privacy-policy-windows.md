@@ -2,7 +2,7 @@
 
 **Applies to:** the Windows package `One-Line-Physics-Draw.msix` (Microsoft Store / MSIX) and the
 portable `Physics-Draw-Windows.zip` build.
-**Package identity:** `Nthanhbadboy.OneLinePhysicsDraw` · **Version:** 1.0.0.0 · **Publisher:** Nthanhbadboy
+**Package identity:** `NGUYENMINHNTHHANH.52765D90C6EA8` · **Version:** 1.0.0.0 · **Publisher:** NGUYEN MINH THANH
 **Effective date:** October 22, 2026
 
 This policy covers the Windows builds only. The web and Android builds are covered by the

@@ -70,7 +70,7 @@ typedef HRESULT(WINAPI *CreateEnvironmentFn)(PCWSTR browserExecutableFolder,
 void report_failure(const wchar_t *context, HRESULT hr) {
     wchar_t message[512];
     swprintf(message, 512, L"%s\n\nHRESULT 0x%08lX", context, static_cast<unsigned long>(hr));
-    MessageBoxW(g_window, message, L"One-Line Physics Draw " WIDEN(APP_VERSION), MB_OK | MB_ICONERROR);
+    MessageBoxW(g_window, message, WIDEN(APP_NAME) L" " WIDEN(APP_VERSION), MB_OK | MB_ICONERROR);
 }
 
 void report_missing_runtime() {
@@ -81,7 +81,7 @@ void report_missing_runtime() {
         L"\"Evergreen Standalone Installer\" from Microsoft's WebView2 page, then start the "
         L"app again.\n\n"
         L"Open the WebView2 download page now?",
-        L"One-Line Physics Draw - WebView2 runtime missing",
+        WIDEN(APP_NAME) L" - WebView2 runtime missing",
         MB_YESNO | MB_ICONWARNING);
     if (choice == IDYES) {
         ShellExecuteW(nullptr,
@@ -246,7 +246,7 @@ public:
             args->get_WebErrorStatus(&status);
             wchar_t message[256];
             swprintf(message, 256, L"The game page failed to load (web error status %d).", static_cast<int>(status));
-            MessageBoxW(g_window, message, L"One-Line Physics Draw", MB_OK | MB_ICONWARNING);
+            MessageBoxW(g_window, message, WIDEN(APP_NAME), MB_OK | MB_ICONWARNING);
         }
         return S_OK;
     }
@@ -462,7 +462,7 @@ int start_webview() {
                     L"WebView2Loader.dll could not be loaded.\n\n"
                     L"Make sure it sits next to PhysicsDraw.exe, and that the Microsoft Edge "
                     L"WebView2 runtime is installed.",
-                    L"One-Line Physics Draw",
+                    WIDEN(APP_NAME),
                     MB_OK | MB_ICONERROR);
         return 1;
     }
@@ -472,7 +472,7 @@ int start_webview() {
     if (!create_environment) {
         MessageBoxW(g_window,
                     L"WebView2Loader.dll does not export CreateCoreWebView2EnvironmentWithOptions.",
-                    L"One-Line Physics Draw",
+                    WIDEN(APP_NAME),
                     MB_OK | MB_ICONERROR);
         return 1;
     }
@@ -526,7 +526,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR command_line, int show
     window_class.hIconSm = icon;
     window_class.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     window_class.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
-    window_class.lpszClassName = L"OneLinePhysicsDrawWindow";
+    window_class.lpszClassName = L"PhysicsDrawPuzzleWindow";
     if (!RegisterClassExW(&window_class)) {
         CoUninitialize();
         return 1;
@@ -557,7 +557,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR command_line, int show
 
     g_window = CreateWindowExW(0,
                                window_class.lpszClassName,
-                               L"One-Line Physics Draw",
+                               WIDEN(APP_NAME),
                                WS_OVERLAPPEDWINDOW,
                                left,
                                top,

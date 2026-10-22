@@ -148,8 +148,10 @@ Center re-signs what it publishes, so a signature added here would only be strip
 - **Microsoft Store.** Upload `One-Line-Physics-Draw.msix` in Partner Center. The `Publisher` in
   the manifest must match your account's publisher identity or the submission is rejected; set the
   repository variable `MSIX_PUBLISHER` (Settings → Secrets and variables → Actions → Variables) to
-  that `CN=...` value and the next workflow run bakes it in. Reserve the same `Identity Name`
-  (`Nthanhbadboy.OneLinePhysicsDraw`) for the app in Partner Center.
+  that `CN=...` value and the next workflow run bakes it in. `identityName`, `publisher` and
+  `displayName` in `windows/app.json` must equal, character for character, the values Partner
+  Center prints in its validation errors for your app — the reserved app name, the publisher
+  certificate subject and the generated package identity. A mismatch fails acceptance validation.
 - **Sideload for testing.** Windows will not install an unsigned package, so sign it with a
   self-signed certificate whose subject matches the manifest publisher, trust that certificate,
   and install it with Developer Mode or "sideload apps" enabled:
