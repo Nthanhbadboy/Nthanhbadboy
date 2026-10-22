@@ -1,0 +1,111 @@
+name: Publish privacy policy pages
+
+# Publishes docs/ to GitHub Pages so the privacy policy has a permanent public URL that can be
+# pasted into Partner Center, Play Console and AppGallery. The site root is docs/, therefore:
+#
+#   https://nthanhbadboy.github.io/Nthanhbadboy/                            policy index
+#   https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy-windows.html Windows / MSIX policy
+#   https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html         web + Android policy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - arena/9645baec-nthanhbadboy
+    paths:
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; do not cancel a running deployment mid-flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy docs/ to GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v5
+
+      - name: Validate the published pages
+        run: |
+          set -euo pipefail
+          for page in index.html privacy-policy.html privacy-policy-windows.html; do
+            if [ ! -f "docs/$page" ]; then
+              echo "::error file=docs/$page::required policy page is missing"
+              exit 1
+            fi
+          done
+
+          # A policy page must load anywhere, including behind a store reviewer's proxy, so it may
+          # not pull subresources from a CDN. Hyperlinks to other pages are fine.
+          if grep -rEn '<(script|img|iframe|video|source)[^>]+(src|poster)="https?://|<link[^>]+href="https?://|@import[[:space:]]+["'"'"']?https?://|url\([[:space:]]*["'"'"']?https?://' docs/*.html; then
+            echo "::error::a published page embeds a remote subresource; the policy pages must be self-contained"
+            exit 1
+          fi
+
+          # Every relative link inside the published pages must resolve to a published file.
+          python3 - <<'PY'
+          import pathlib, re, sys, urllib.parse
+
+          docs = pathlib.Path('docs')
+          published = {p.name for p in docs.iterdir() if p.is_file()}
+          broken = []
+          for page in sorted(docs.glob('*.html')):
+              text = page.read_text(encoding='utf-8')
+              for attr in ('href', 'src'):
+                  for target in re.findall(rf'{attr}="([^"]+)"', text):
+                      if target.startswith(('http://', 'https://', 'mailto:', 'data:', '#')):
+                          continue
+                      name = urllib.parse.urlparse(target).path.split('/')[-1]
+                      if name and name not in published:
+                          broken.append(f'{page.name}: {attr}="{target}"')
+          for item in broken:
+              print(f'::error::{item} does not resolve inside docs/')
+          if broken:
+              sys.exit(f'{len(broken)} broken link(s) in the published policy pages')
+          print(f'docs/: {len(published)} files, links resolve, no remote subresources')
+          PY
+
+      - name: Upload the pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Write the job summary
+        run: |
+          set -euo pipefail
+          base="${{ steps.deployment.outputs.page_url }}"
+          {
+            echo "## Privacy policy pages published"
+            echo
+            echo "| Page | URL |"
+            echo "| --- | --- |"
+            echo "| Index | ${base} |"
+            echo "| Windows / MSIX | ${base}privacy-policy-windows.html |"
+            echo "| Web + Android | ${base}privacy-policy.html |"
+            echo
+            echo "Paste **${base}privacy-policy-windows.html** into the Microsoft Store listing as the"
+            echo "privacy policy URL for the MSIX package."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy — One-Line Physics Draw for Windows</title>
+  <meta name="description" content="Privacy policy for the Windows (MSIX / Microsoft Store) build of One-Line Physics Draw: no accounts, no data collection, no ads, fully offline.">
+  <meta name="robots" content="index,follow">
+  <style>
+    :root { color-scheme: light; --ink:#273244; --paper:#fffdf5; --grid:#e8e1c9; --red:#e63946; --blue:#3159c7; }
+    * { box-sizing: border-box; }
+    body { margin:0; color:var(--ink); background:#f7f0d8; font:16px/1.65 system-ui,-apple-system,"Segoe UI",Arial,sans-serif; }
+    main { width:min(900px,calc(100% - 32px)); margin:32px auto; padding:32px; background:var(--paper); border:2px solid var(--ink); border-radius:16px; box-shadow:7px 7px 0 var(--ink); background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px); background-size:24px 24px; }
+    article { padding:24px; background:rgba(255,253,245,.94); border-radius:10px; }
+    h1,h2,h3 { line-height:1.2; }
+    h1 { margin-top:0; color:var(--red); font-size:clamp(26px,5vw,40px); }
+    h2 { margin-top:32px; color:var(--blue); }
+    .meta { color:#677084; font-size:14px; }
+    .meta strong { color:var(--ink); }
+    a { color:#2447ad; }
+    code { padding:2px 5px; background:#eee9d9; border-radius:4px; font-size:.92em; }
+    ul { padding-left:22px; }
+    li { margin:4px 0; }
+    .glance { margin:20px 0 0; padding:16px 20px 16px 20px; border:2px dashed var(--ink); border-radius:12px; background:#fdf7e3; }
+    .glance h2 { margin-top:0; }
+    table { width:100%; border-collapse:collapse; margin:14px 0; font-size:14.5px; }
+    th,td { padding:8px 10px; border:1px solid var(--grid); text-align:left; vertical-align:top; }
+    th { background:#f3ecd8; }
+    .lang { margin-top:36px; padding-top:20px; border-top:2px solid var(--grid); }
+    footer { margin-top:28px; color:#677084; font-size:13px; }
+    nav.crumb { font-size:14px; color:#677084; margin-bottom:10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <article>
+      <nav class="crumb"><a href="index.html">Privacy policies</a> · Windows / MSIX</nav>
+      <h1>Privacy Policy — One-Line Physics Draw for Windows</h1>
+      <p class="meta">
+        <strong>Applies to:</strong> the Windows package <code>One-Line-Physics-Draw.msix</code> (Microsoft Store / MSIX) and the portable <code>Physics-Draw-Windows.zip</code> build<br>
+        <strong>Package identity:</strong> <code>Nthanhbadboy.OneLinePhysicsDraw</code> · <strong>Version:</strong> 1.0.0.0 · <strong>Publisher:</strong> Nthanhbadboy<br>
+        <strong>Effective date:</strong> October 22, 2026
+      </p>
+
+      <p>This policy covers the Windows builds only. The web and Android builds are covered by the
+        <a href="privacy-policy.html">general privacy policy</a>, which differs because those builds load
+        libraries and fonts from content delivery networks.</p>
+
+      <div class="glance">
+        <h2>At a glance</h2>
+        <ul>
+          <li>No account, no sign-in, no personal information collected or transmitted.</li>
+          <li>No advertising, no analytics, no telemetry, no crash reporting, no tracking identifiers.</li>
+          <li>No in-app purchases and no payment data.</li>
+          <li>Fully offline: the page, the physics engine, the icons and the fonts are bundled inside the package, so playing makes no network request.</li>
+          <li>Your progress never leaves the device.</li>
+        </ul>
+      </div>
+
+      <h2>Information we collect</h2>
+      <p>None. The Windows builds do not require an account and do not collect, transmit or sell personal
+        information. We do not collect names, email addresses, phone numbers, contacts, precise or approximate
+        location, photographs, microphone recordings, files, payment credentials, health data, or advertising
+        identifiers. The developer operates no server that the app contacts.</p>
+
+      <h2>Information stored on your device</h2>
+      <p>The game saves your own progress in a single browser-storage entry named
+        <code>oneLinePhysicsDrawState</code>, which holds unlocked levels, stars, hints used, the chosen
+        language and the sound preference. It is written by the game page and read back on the next launch.
+        It is not sent anywhere.</p>
+      <table>
+        <thead>
+          <tr><th>Build</th><th>Where that entry lives</th><th>How to delete it</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MSIX package<br><code>One-Line-Physics-Draw.msix</code></td>
+            <td>The WebView2 profile inside the package's own local state, managed by Windows</td>
+            <td>Settings → Apps → Installed apps → <strong>One-Line Physics Draw</strong> → Advanced options → <strong>Reset</strong>; or uninstall the app, which makes Windows remove the package's local state</td>
+          </tr>
+          <tr>
+            <td>Portable payload<br><code>PhysicsDraw.exe</code> run unpackaged</td>
+            <td><code>%LOCALAPPDATA%\OneLinePhysicsDraw\WebView2</code></td>
+            <td>Delete that folder</td>
+          </tr>
+          <tr>
+            <td>Portable launcher<br><code>Physics-Draw.exe</code></td>
+            <td>Your default browser's local storage for the origin <code>http://127.0.0.1:4173</code></td>
+            <td>Clear site data for that origin in your browser</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Network access</h2>
+      <p>The Windows builds make no network request while you play.
+        <code>scripts/build-offline-html.mjs</code> inlines Matter.js, Font Awesome, the Short Stack and
+        Patrick Hand fonts and the favicon into the single <code>www/index.html</code> file that ships in the
+        package, and the build fails if any remote reference survives. Every build also audits the packaged
+        page for CDN host names and for remote <code>&lt;script&gt;</code>, <code>&lt;link&gt;</code> and
+        <code>&lt;img&gt;</code> tags.</p>
+      <p>There is exactly one network-related behaviour, and it is yours to trigger: if the Microsoft Edge
+        WebView2 Runtime is missing, the app shows a dialog explaining this and asks whether to open
+        Microsoft's WebView2 download page. Nothing is opened unless you choose <strong>Yes</strong>, and it
+        opens in your own default browser — the app itself transmits no data.</p>
+      <p>The bundled licence notices contain the URLs <code>fontawesome.com</code>,
+        <code>fontawesome.com/license/free</code> and <code>brm.io/matter-js/</code> as plain attribution
+        text. No request is made to them.</p>
+
+      <h2>Bundled third-party components</h2>
+      <p>These are copied into the package at build time, so their publishers receive nothing when you play:</p>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Licence</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Matter.js 0.19.0</td><td>MIT</td><td>2D physics simulation</td></tr>
+          <tr><td>Font Awesome Free 6.5.2 (solid)</td><td>Icons CC BY 4.0, fonts SIL OFL 1.1, code MIT</td><td>Interface icons</td></tr>
+          <tr><td>Short Stack, Patrick Hand</td><td>SIL Open Font License 1.1</td><td>Interface fonts, including the Vietnamese subset</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Microsoft Edge WebView2 Runtime</h2>
+      <p>The MSIX build renders the game through the Microsoft Edge WebView2 Runtime, a Microsoft component
+        that ships with Windows 11 and is installed with Microsoft Edge on Windows 10. The runtime is
+        provided and governed by Microsoft, not by this app, and it is covered by the
+        <a href="https://privacy.microsoft.com/privacystatement" rel="external">Microsoft Privacy
+        Statement</a>. The app configures the runtime to load only the bundled local page, disables browser
+        zoom and the status bar, and requests no browsing data. Any diagnostics the runtime or Windows
+        itself may produce are controlled in Windows (Settings → Privacy &amp; security → Diagnostics &amp;
+        feedback), not by this app.</p>
+
+      <h2>Permissions and capabilities</h2>
+      <p><code>AppxManifest.xml</code> declares a single capability, <code>runFullTrust</code>, which every
+        packaged desktop (Win32) app requires in order to run its own executable. The package declares no
+        capability for location, camera, microphone, contacts, calendar, phone calls, the
+        documents/pictures/music libraries, user account information, or network communication. The embedded
+        application manifest requests <code>asInvoker</code> execution, so the app never asks for
+        administrator rights.</p>
+
+      <h2>Data retention and security</h2>
+      <p>Because there is no server, there is nothing for us to retain, back up, lose or delete. Your
+        progress stays in your Windows user profile until you reset or uninstall the app.</p>
+      <p>Packages submitted to the Microsoft Store are re-signed by Microsoft, and the MSIX format verifies
+        the SHA-256 hash of every 64 KiB block of every file at install time and while the app is installed,
+        so a modified package will not install or run.</p>
+
+      <h2>Children's privacy</h2>
+      <p>The app does not knowingly collect personal information from anyone, including children. There is
+        no registration, no profile, no messaging, no user-generated content shared with others and no
+        advertising. Because nothing is collected, there is nothing for a parent or guardian to request
+        access to or deletion of, and no data is shared with third parties for any purpose.</p>
+
+      <h2>Your privacy rights</h2>
+      <p>There is no server-side personal data to export, correct or erase. You can remove everything the app
+        stores on your device at any time using the Reset option or by uninstalling it (see the table above).
+        For questions or privacy requests, contact the developer through the
+        <a href="https://github.com/Nthanhbadboy/Nthanhbadboy/issues" rel="external">repository issue
+        tracker</a>.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>If a future release adds anything that changes these facts — accounts, cloud saves, advertising,
+        in-app purchases, analytics, or any network feature — this page will be updated before that release
+        ships and the effective date above will change.</p>
+
+      <div class="lang" lang="vi">
+        <h2>Tiếng Việt — tóm tắt</h2>
+        <p>Bản Windows (gói <code>.msix</code> cho Microsoft Store và bản portable <code>.zip</code>)
+          <strong>không thu thập bất kỳ thông tin cá nhân nào</strong>: không tài khoản, không đăng nhập,
+          không quảng cáo, không phân tích, không telemetry, không mua hàng trong ứng dụng. Trò chơi chạy
+          <strong>hoàn toàn ngoại tuyến</strong> — trang game, thư viện vật lý Matter.js, icon và font chữ
+          đều được nhúng sẵn trong gói, nên quá trình chơi không tạo ra một yêu cầu mạng nào.</p>
+        <p>Tiến trình chơi (màn đã mở, số sao, gợi ý đã dùng, ngôn ngữ, âm thanh) được lưu
+          <strong>trên máy bạn</strong> trong khoá <code>oneLinePhysicsDrawState</code> và không bao giờ
+          được gửi đi đâu. Gỡ ứng dụng, hoặc dùng <em>Settings → Apps → One-Line Physics Draw → Advanced
+          options → Reset</em>, sẽ xoá toàn bộ dữ liệu đó.</p>
+        <p>Trường hợp duy nhất liên quan đến mạng: nếu máy thiếu <strong>Microsoft Edge WebView2
+          Runtime</strong>, ứng dụng sẽ hiện hộp thoại hỏi bạn có muốn mở trang tải của Microsoft hay không
+          — chỉ khi bạn bấm <strong>Yes</strong> thì trang đó mới mở, và mở bằng trình duyệt của bạn; ứng
+          dụng không tự gửi dữ liệu nào.</p>
+        <p>Thành phần WebView2 Runtime là của Microsoft và chịu sự điều chỉnh của
+          <a href="https://privacy.microsoft.com/privacystatement" rel="external">Tuyên bố về quyền riêng tư
+          của Microsoft</a>. Mọi câu hỏi xin gửi qua
+          <a href="https://github.com/Nthanhbadboy/Nthanhbadboy/issues" rel="external">issue tracker của
+          repository</a>.</p>
+      </div>
+
+      <footer>
+        Privacy policy for One-Line Physics Draw on Windows. Last updated October 22, 2026.<br>
+        <a href="index.html">All privacy policies</a> ·
+        <a href="https://github.com/Nthanhbadboy/Nthanhbadboy" rel="external">Source repository</a>
+      </footer>
+    </article>
+  </main>
+</body>
+</html>

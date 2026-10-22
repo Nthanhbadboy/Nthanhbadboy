@@ -3,10 +3,51 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=privacy-policy.html">
-  <title>One-Line Physics Draw — Privacy Policy</title>
+  <title>Privacy Policies — One-Line Physics Draw</title>
+  <meta name="description" content="Privacy policies for One-Line Physics Draw: the Windows (MSIX / Microsoft Store) build and the web and Android builds.">
+  <style>
+    :root { color-scheme: light; --ink:#273244; --paper:#fffdf5; --grid:#e8e1c9; --red:#e63946; --blue:#3159c7; }
+    * { box-sizing: border-box; }
+    body { margin:0; color:var(--ink); background:#f7f0d8; font:16px/1.65 system-ui,-apple-system,"Segoe UI",Arial,sans-serif; }
+    main { width:min(900px,calc(100% - 32px)); margin:32px auto; padding:32px; background:var(--paper); border:2px solid var(--ink); border-radius:16px; box-shadow:7px 7px 0 var(--ink); background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px); background-size:24px 24px; }
+    h1 { margin:0 0 4px; color:var(--red); font-size:clamp(26px,5vw,40px); line-height:1.15; }
+    p.lede { margin:0 0 24px; color:#677084; }
+    a { color:#2447ad; }
+    .cards { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+    .card { display:block; padding:20px; text-decoration:none; color:var(--ink); background:rgba(255,253,245,.94); border:2px solid var(--ink); border-radius:12px; box-shadow:5px 5px 0 var(--ink); }
+    .card:hover { transform:translate(-1px,-1px); box-shadow:6px 6px 0 var(--ink); }
+    .card h2 { margin:0 0 6px; font-size:19px; color:var(--blue); }
+    .card p { margin:0; font-size:14.5px; color:#4c566a; }
+    .card .tag { display:inline-block; margin-bottom:8px; padding:2px 8px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; background:#eee9d9; border-radius:999px; }
+    footer { margin-top:26px; color:#677084; font-size:13px; }
+  </style>
 </head>
 <body>
-  <p>Redirecting to the <a href="privacy-policy.html">One-Line Physics Draw privacy policy</a>…</p>
+  <main>
+    <h1>Privacy Policies</h1>
+    <p class="lede">One-Line Physics Draw — pick the build you installed.</p>
+
+    <div class="cards">
+      <a class="card" href="privacy-policy-windows.html">
+        <span class="tag">Windows · MSIX</span>
+        <h2>Windows / Microsoft Store</h2>
+        <p>For <code>One-Line-Physics-Draw.msix</code> and the portable <code>Physics-Draw-Windows.zip</code>:
+          no accounts, no data collection, no ads, fully offline.</p>
+      </a>
+
+      <a class="card" href="privacy-policy.html">
+        <span class="tag">Web · Android</span>
+        <h2>Web and Android builds</h2>
+        <p>The general policy, which also covers the builds that load libraries and fonts from content
+          delivery networks and the Android flavours.</p>
+      </a>
+    </div>
+
+    <footer>
+      Questions or privacy requests:
+      <a href="https://github.com/Nthanhbadboy/Nthanhbadboy/issues" rel="external">repository issue tracker</a> ·
+      <a href="https://github.com/Nthanhbadboy/Nthanhbadboy" rel="external">source repository</a>
+    </footer>
+  </main>
 </body>
 </html>

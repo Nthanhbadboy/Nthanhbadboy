@@ -53,12 +53,22 @@ See [`SIGNING.md`](SIGNING.md) for permanent release-keystore setup and GitHub A
 
 ### Privacy policy
 
-The store-safe release privacy policy is available as a public GitHub page at [`docs/privacy-policy.md`](docs/privacy-policy.md):
+Two policies, both published to GitHub Pages by `.github/workflows/pages.yml` (the site root is
+`docs/`), so every store listing can point at a permanent public URL:
 
-- Policy: `https://github.com/Nthanhbadboy/Nthanhbadboy/blob/arena/667974da-nthanhbadboy/docs/privacy-policy.md`
-- Privacy rights: use the same public policy URL and the **Privacy rights** section.
+| Build | Public URL | Source |
+| --- | --- | --- |
+| Windows / MSIX | `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy-windows.html` | [`docs/privacy-policy-windows.md`](docs/privacy-policy-windows.md) |
+| Web + Android | `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html` | [`docs/privacy-policy.md`](docs/privacy-policy.md) |
 
-GitHub Pages deployment is optional; if Pages is enabled later, the HTML copy can be served at `https://nthanhbadboy.github.io/Nthanhbadboy/privacy-policy.html`.
+- Index of both policies: `https://nthanhbadboy.github.io/Nthanhbadboy/`
+- Privacy rights: use the same public URL and its **Your privacy rights** section.
+- For the Microsoft Store listing of the MSIX package, use the Windows policy: it documents the
+  offline payload, the single `oneLinePhysicsDrawState` storage entry and where it lives per build,
+  the `runFullTrust` capability, and the WebView2 runtime.
+- Pages redeploys on every push that touches `docs/`. The workflow fails if a published page embeds a
+  remote subresource or if a relative link does not resolve inside `docs/`, so the policy can never
+  quietly turn into a page that needs a CDN or a link that 404s.
 
 ### GitHub build
 
