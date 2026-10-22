@@ -56,8 +56,8 @@ jobs:
 
           # A policy page must load anywhere, including behind a store reviewer's proxy, so it may
           # not pull subresources from a CDN. Hyperlinks to other pages are fine.
-          if grep -rEn '<(script|img|iframe|video|source)[^>]+(src|poster)="https?://|<link[^>]+href="https?://|@import[[:space:]]+["'"'"']?https?://|url\([[:space:]]*["'"'"']?https?://' docs/*.html; then
-            echo "::error::a published page embeds a remote subresource; the policy pages must be self-contained"
+          if grep -rEn '<(script|img|iframe|video|source)[^>]+(src|poster)="https?://|<link[^>]+href="https?://|@import[[:space:]]+["'"'"']?https?://|url\([[:space:]]*["'"'"']?https?://' docs/*.html | grep -v 'rel="canonical"'; then
+            echo "::error::a published page embeds a remote subresource; the policy pages must be self-contained (rel=canonical is the only allowed remote href)"
             exit 1
           fi
 
