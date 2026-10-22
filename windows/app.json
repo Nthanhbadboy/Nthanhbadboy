@@ -43,7 +43,7 @@
     "displayName": "Physics_Draw_Puzzle",
     "description": "Draw a single line of ink, press PLAY, and let physics finish the puzzle: your stroke becomes a ramp, a bridge or a seesaw that rolls the ball into the cup. 100 hand-made levels, no ads, no accounts, and the whole game ships inside the package so it works with the network turned off.",
     "shortDescription": "Draw one line, press PLAY, roll the ball into the cup.",
-    "packageVersion": "1.0.0.0",
+    "packageVersion": "1.0.1.0",
     "minVersion": "10.0.17763.0",
     "maxVersionTested": "10.0.22621.0",
     "backgroundColor": "#f7f0d8",

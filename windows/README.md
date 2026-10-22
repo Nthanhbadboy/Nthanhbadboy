@@ -228,3 +228,8 @@ release.
   `MSIX_PUBLISHER` repository variable to your Store publisher identity and re-run the workflow.
 - **The window opens but stays blank**: the WebView2 runtime is missing or too old — install the
   Evergreen runtime from Microsoft and start again.
+- **Partner Center says `Invalid package identity name: X (expected: X)`** with both sides identical:
+  the draft still holds an earlier package with the same *package full name* (identity + publisher +
+  version + architecture) but different bytes — deleted draft packages keep occupying their full
+  name. Bump `msix.packageVersion` in `windows/app.json`, rebuild, **Delete** the stale package row
+  in the draft, and upload exactly one file (either the CI artifact or a local build, never both).
