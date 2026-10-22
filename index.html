@@ -25,6 +25,13 @@
       --green-dark: #137046;
       --yellow: #f5c84c;
       --orange: #ef9147;
+      /* Real size of the notebook: 1 logical game unit = 1 CSS pixel. */
+      --notebook-w: 400px;
+      --notebook-h: 650px;
+      /* Bars span the window; their content stays in a centred column. */
+      --bar-column: 760px;
+      --bar-edge: 12px;
+      --bar-gutter: max(var(--bar-edge), calc((100% - var(--bar-column)) / 2));
       --border: 2px solid var(--ink);
       --shadow: 4px 4px 0 var(--ink);
       --shadow-large: 7px 7px 0 var(--ink);
@@ -51,11 +58,11 @@
     }
 
     .app-shell {
-      width: min(100%, 760px);
+      width: 100%;
       height: 100dvh;
       min-height: 500px;
-      margin: 0 auto;
-      padding: max(8px, env(safe-area-inset-top)) 12px max(8px, env(safe-area-inset-bottom));
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       gap: 7px;
@@ -65,7 +72,10 @@
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      width: 100%;
       min-height: 43px;
+      padding-inline: var(--bar-gutter);
+      padding-top: max(8px, env(safe-area-inset-top));
       z-index: 5;
     }
     .brand-lockup { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -140,7 +150,8 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 0 2px;
+      width: 100%;
+      padding: 0 calc(var(--bar-gutter) + 2px);
       z-index: 3;
     }
     .level-pill {
@@ -283,7 +294,15 @@
       pointer-events: none;
     }
 
-    .bottom-bar { z-index: 5; display: flex; flex-direction: column; gap: 6px; }
+    .bottom-bar {
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      padding-inline: var(--bar-gutter);
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
     .control-row { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 7px; }
     .control-row .doodle-btn { min-height: 40px; font-size: 11px; }
     .play-btn { background: #65d497; color: #123b2a; font-size: 14px !important; }
@@ -418,10 +437,26 @@
     }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+    /* The notebook keeps its real 400x650 CSS pixel size, so 1 logical game unit maps to
+       1 CSS pixel and the canvas is pixel-perfect. It never stretches: when the window is
+       smaller than the notebook the whole card scales down uniformly (the width follows the
+       height through aspect-ratio) and only the grid paper around it grows or shrinks.
+       Container units need Chrome/Edge 105+, Safari 16+, Firefox 110+; older engines keep the
+       fit-to-window rules above, which is also what the Android WebView falls back to. */
+    @supports (width: 1cqw) {
+      .play-stage { container-type: size; }
+      .canvas-card {
+        width: min(var(--notebook-w), 100cqw, calc(100cqh * 400 / 650));
+        height: auto;
+        max-height: none;
+      }
+    }
+
     @keyframes gentle-pulse { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 520px) {
-      .app-shell { padding-inline: 8px; gap: 5px; }
+      .app-shell { gap: 5px; }
+      .topbar, .status-row, .bottom-bar { --bar-edge: 8px; }
       .brand-logo { width: 34px; height: 34px; flex-basis: 34px; font-size: 16px; }
       .brand-title { font-size: 15px; }
       .brand-subtitle { font-size: 7px; }
@@ -435,7 +470,9 @@
       .draw-prompt { top: 43px; font-size: 9px; }
     }
     @media (max-height: 650px) {
-      .app-shell { min-height: 420px; gap: 3px; padding-top: 4px; padding-bottom: 4px; }
+      .app-shell { min-height: 420px; gap: 3px; }
+      .topbar { padding-top: max(4px, env(safe-area-inset-top)); }
+      .bottom-bar { padding-bottom: max(4px, env(safe-area-inset-bottom)); }
       .topbar { min-height: 35px; }
       .brand-logo { width: 30px; height: 30px; flex-basis: 30px; }
       .brand-subtitle { display: none; }
