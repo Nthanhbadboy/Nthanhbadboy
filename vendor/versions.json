@@ -1,0 +1,14 @@
+{
+  "matterJs": "0.19.0",
+  "fontAwesome": "6.5.2",
+  "fontsourcePatrickHand": "5.3.0",
+  "fontsourceShortStack": "5.3.0",
+  "sources": {
+    "matterJs": "https://registry.npmjs.org/matter-js/-/matter-js-0.19.0.tgz",
+    "fontAwesome": "https://registry.npmjs.org/@fortawesome/fontawesome-free/-/fontawesome-free-6.5.2.tgz",
+    "fontsourcePatrickHand": "https://registry.npmjs.org/@fontsource/patrick-hand/-/patrick-hand-5.3.0.tgz",
+    "fontsourceShortStack": "https://registry.npmjs.org/@fontsource/short-stack/-/short-stack-5.3.0.tgz",
+    "oflPatrickHand": "https://github.com/google/fonts/blob/main/ofl/patrickhand/OFL.txt",
+    "oflShortStack": "https://github.com/google/fonts/blob/main/ofl/shortstack/OFL.txt"
+  }
+}

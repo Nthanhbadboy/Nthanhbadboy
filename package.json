@@ -1,0 +1,16 @@
+{
+  "name": "one-line-physics-draw",
+  "version": "1.0.0",
+  "private": true,
+  "description": "One-Line Physics Draw - single-file HTML5 physics doodle game with Android and Windows packages",
+  "type": "module",
+  "scripts": {
+    "build:offline": "node scripts/build-offline-html.mjs --out build/offline/index.html",
+    "build:windows": "node scripts/build-windows.mjs",
+    "verify:offline": "node scripts/verify-offline-page.mjs",
+    "verify": "npm run build:windows && npm run verify:offline -- windows/build/index.html"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

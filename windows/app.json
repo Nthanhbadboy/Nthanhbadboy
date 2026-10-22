@@ -1,0 +1,14 @@
+{
+  "name": "One-Line Physics Draw",
+  "binaryName": "Physics-Draw",
+  "packageName": "Physics-Draw-Windows",
+  "zipName": "Physics-Draw-Windows.zip",
+  "version": "1.0.0",
+  "defaultPort": 4173,
+  "healthToken": "one-line-physics-draw",
+  "windowsTarget": "x86_64-windows-gnu",
+  "windowsLibraries": ["ws2_32", "shell32"],
+  "selfTestTarget": "native",
+  "minimumExecutableBytes": 200000,
+  "maximumExecutableBytes": 20000000
+}

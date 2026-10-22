@@ -1,4 +1,4 @@
-name: Build Release and Windows Packages
+name: Build Signed Android Release APKs
 
 on:
   push:
@@ -203,54 +203,8 @@ jobs:
           set +e
           current_run="${{ github.run_id }}"
           gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
-            --jq ".artifacts[] | select((.name == \"physics-draw-release-apks\" or .name == \"physics-draw-apks\" or .name == \"physics-draw-windows-package\" or .name == \"physics-draw-windows\") and .workflow_run.id != ${current_run}) | .id" \
+            --jq ".artifacts[] | select((.name == \"physics-draw-release-apks\" or .name == \"physics-draw-apks\") and .workflow_run.id != ${current_run}) | .id" \
             | while read -r artifact_id; do
                 test -z "$artifact_id" || gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
               done
 
-  package-windows:
-    name: Package portable Windows web build
-    runs-on: windows-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Create portable package
-        shell: pwsh
-        run: |
-          $package = "windows-package"
-          New-Item -ItemType Directory -Force -Path $package | Out-Null
-          Copy-Item "index.html" "$package/index.html"
-
-          @'
-          @echo off
-          setlocal
-          where py >nul 2>nul
-          if %ERRORLEVEL% EQU 0 (
-            start "Physics Draw server" cmd /c "py -m http.server 4173"
-            timeout /t 1 /nobreak >nul
-            start "Physics Draw" http://127.0.0.1:4173/index.html
-          ) else (
-            start "Physics Draw" index.html
-          )
-          '@ | Set-Content -Encoding ASCII "$package/Run-Physics-Draw.bat"
-
-          @'
-          Physics Draw portable Windows package
-          Double-click Run-Physics-Draw.bat to start the game.
-          Python 3 is recommended so the game runs from a local HTTP server;
-          otherwise the launcher opens index.html directly in the default browser.
-          An internet connection is required for the Matter.js and font CDN assets.
-          '@ | Set-Content -Encoding UTF8 "$package/README.txt"
-
-          Compress-Archive -Path "$package/*" -DestinationPath "physics-draw-windows.zip" -Force
-
-      - name: Upload Windows package
-        uses: actions/upload-artifact@v4
-        with:
-          name: physics-draw-windows-package
-          path: physics-draw-windows.zip
-          if-no-files-found: error
-          retention-days: 30

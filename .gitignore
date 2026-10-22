@@ -9,6 +9,14 @@ android-app/release.keystore
 *.jks
 *.keystore
 
+# Node (only used by the offline/Windows build and verification scripts)
+node_modules/
+
+# Generated offline web build and Windows package output
+/build/
+/windows/build/
+/windows-release/
+
 # Local preview and OS files
 .DS_Store
 Thumbs.db

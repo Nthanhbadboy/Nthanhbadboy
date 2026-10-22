@@ -1,0 +1,175 @@
+name: Build Windows Package
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - arena/9645baec-nthanhbadboy
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - index.html
+      - assets/**
+      - scripts/**
+      - vendor/**
+      - windows/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/windows-build.yml
+  workflow_dispatch:
+
+env:
+  ZIG_VERSION: '0.17.0'
+
+jobs:
+  build-windows:
+    name: Build and verify the offline Windows package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install verification dependencies
+        run: npm ci
+
+      - name: Install the Zig cross-compiler
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/zig-venv"
+          "$RUNNER_TEMP/zig-venv/bin/pip" install --quiet --disable-pip-version-check "ziglang==$ZIG_VERSION"
+          echo "ZIG=$RUNNER_TEMP/zig-venv/bin/python -m ziglang" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/zig-venv/bin/python" -m ziglang version
+
+      - name: Build Physics-Draw.exe and the portable zip
+        run: node scripts/build-windows.mjs --out windows-release --keep-temp
+
+      - name: Boot the offline page in a headless DOM
+        run: node scripts/verify-offline-page.mjs windows/build/index.html
+
+      - name: Confirm the package needs no network
+        run: |
+          set -euo pipefail
+          package="windows-release/Physics-Draw-Windows"
+          for host in cdnjs.cloudflare.com fonts.googleapis.com fonts.gstatic.com unpkg.com jsdelivr.net; do
+            for file in "$package/Physics-Draw.exe" "$package/index.html"; do
+              if grep -qaF "$host" "$file"; then
+                echo "::error file=$file::$host is still referenced; the Windows package must be fully offline"
+                exit 1
+              fi
+            done
+          done
+          # The executable must really be a 64-bit Windows PE image.
+          python3 - <<'PY'
+          import json, pathlib, sys
+          report = json.loads(pathlib.Path('windows-release/build-report.json').read_text())
+          exe = pathlib.Path('windows-release/Physics-Draw-Windows') / report['binary']
+          data = exe.read_bytes()
+          pe = int.from_bytes(data[0x3c:0x40], 'little')
+          assert data[:2] == b'MZ', 'missing MZ header'
+          assert data[pe:pe + 4] == b'PE\0\0', 'missing PE signature'
+          assert int.from_bytes(data[pe + 4:pe + 6], 'little') == 0x8664, 'not an x86-64 image'
+          print(f"{report['binary']}: PE32+ x86-64, {len(data):,} bytes, sha256 {report['sha256']['executable']}")
+          PY
+
+      - name: Write the job summary
+        run: |
+          set -euo pipefail
+          report="windows-release/build-report.json"
+          {
+            echo "## Windows package"
+            echo
+            echo "| Item | Value |"
+            echo "| --- | --- |"
+            python3 - "$report" <<'PY'
+          import json, sys
+          report = json.load(open(sys.argv[1]))
+          print(f"| Version | {report['version']} |")
+          print(f"| Executable | `{report['binary']}` ({report['executableBytes']:,} bytes, PE x86-64 {report['pe']['subsystemName']}) |")
+          print(f"| Zig | {report['zig']} (`{report['target']}`) |")
+          print(f"| Offline page | {report['offlineHtmlBytes']:,} bytes, no CDN dependencies |")
+          print(f"| Zip | {report['zipBytes']:,} bytes |")
+          print(f"| Zip SHA-256 | `{report['sha256']['zip']}` |")
+          print(f"| Executable SHA-256 | `{report['sha256']['executable']}` |")
+          for entry in report['files']:
+              print(f"| {entry['name']} | {entry['bytes']:,} bytes |")
+          PY
+            echo
+            echo "Verified in this run: launcher self-test over loopback HTTP, PE headers and imports,"
+            echo "byte-for-byte zip re-extraction, and a headless DOM boot of the offline page"
+            echo "(Matter.js, 100 levels, Vietnamese UI, physics step)."
+            echo
+            echo "Download **physics-draw-windows** from the artifacts of this run, unzip it, and"
+            echo "double-click \`Physics-Draw.exe\`. No internet connection is required."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/}"
+          {
+            echo "One-Line Physics Draw $tag - offline Windows package."
+            echo
+            echo "Unzip, double-click \`Physics-Draw.exe\`, and the game opens in your default browser."
+            echo "The page, Matter.js, the icons and the fonts are compiled into the executable, so it"
+            echo "runs with no internet connection and no installation."
+            echo
+            echo '```text'
+            cat windows-release/Physics-Draw-Windows/SHA256SUMS.txt
+            python3 - <<'PY'
+          import json
+          report = json.load(open('windows-release/build-report.json'))
+          print(f"{report['sha256']['zip']}  Physics-Draw-Windows.zip")
+          PY
+            echo '```'
+          } > windows-release/RELEASE-NOTES.md
+          cat windows-release/RELEASE-NOTES.md
+
+      - name: Upload the Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: physics-draw-windows
+          path: |
+            windows-release/Physics-Draw-Windows.zip
+            windows-release/Physics-Draw-Windows/
+            windows-release/build-report.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach the package to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" \
+            --title "One-Line Physics Draw $tag" \
+            --notes-file windows-release/RELEASE-NOTES.md \
+            --target "$GITHUB_SHA" || true
+          gh release upload "$tag" windows-release/Physics-Draw-Windows.zip --clobber
+
+      - name: Remove stale Windows artifacts
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select((.name == \"physics-draw-windows\" or .name == \"physics-draw-windows-package\") and .workflow_run.id != ${GITHUB_RUN_ID}) | .id" \
+            | while read -r artifact_id; do
+                test -z "$artifact_id" || gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}"
+              done
