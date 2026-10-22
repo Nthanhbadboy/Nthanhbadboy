@@ -233,3 +233,6 @@ release.
   version + architecture) but different bytes — deleted draft packages keep occupying their full
   name. Bump `msix.packageVersion` in `windows/app.json`, rebuild, **Delete** the stale package row
   in the draft, and upload exactly one file (either the CI artifact or a local build, never both).
+- **Identity typos are invisible in screenshots.** Copy `identityName`, `publisher` and the reserved
+  display name from Partner Center's *App identity* page as text (or from a validation error you
+  paste as text), never by reading them off an image.
